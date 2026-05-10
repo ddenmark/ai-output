@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueCat MDDS + Edge Resolver HA Anycast-Ready Implementation Guide v1.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        
+        :root {
+            --tw-color-primary: #0ea5e9;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+        }
+        
+        .table-row {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .table-row:hover {
+            background-color: #f8fafc;
+            transform: translateY(1px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        @media print {
+            body {
+                font-size: 11pt;
+                line-height: 1.4;
+                color: #111827;
+                background: white;
+            }
+            .gradient-header {
+                background: #0ea5e9 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .no-print {
+                display: none !important;
+            }
+            table, th, td {
+                border: 1px solid #64748b !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .table-row:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            pre, code {
+                white-space: pre-wrap;
+                font-size: 9pt;
+            }
+        }
+        
+        .icon-circle {
+            transition: transform 0.2s ease;
+        }
+        
+        .table-row:hover .icon-circle {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- HEADER -->
+    <header class="gradient-header text-white py-12 shadow-lg print:py-8">
+        <div class="max-w-7xl mx-auto px-8 lg:px-12">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fa-solid fa-network-wired text-4xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-semibold tracking-tight">BlueCat MDDS + Edge Resolver</h1>
+                        <p class="text-2xl text-sky-100">HA Anycast-Ready Implementation Guide <span class="inline-block bg-white/30 text-white text-sm font-medium px-3 py-1 rounded-full ml-3">v1.5</span></p>
+                        <p class="text-sky-100/90 mt-1">QSR Global DNS POC • Multi-Cloud (Azure • AWS • GCP) • Equinix Fabric Backbone</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>HA Pairs Ready</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <span>Anycast VIP Prepared</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-server"></i>
+                        <span>DHCP + TSIG Ready</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-8 lg:px-12 py-10">
+
+        <!-- INSTRUCTIONS -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 p-8 mb-12">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0 w-10 h-10 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-info-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">How to use this guide</h2>
+                    <p class="text-slate-600 leading-relaxed">This document is structured as a clean two-column table for quick reference and easy printing. Follow sections sequentially. All Terraform, commands, health checks, DHCP, and TSIG steps are copy-paste ready. Network team will handle final BGP advertisement of the unified VIP <code class="bg-slate-100 px-2 py-0.5 rounded font-mono text-sky-700">10.100.100.100/32</code> once all appliances report healthy.</p>
+                    <div class="mt-4 text-xs font-medium flex items-center gap-2 text-slate-500">
+                        <i class="fa-solid fa-print"></i>
+                        Optimized for PDF export • Landscape recommended • Tailwind CSS v3.4+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TWO-COLUMN TABLE -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold flex items-center gap-3">
+                    <i class="fa-solid fa-list-check text-sky-600"></i>
+                    Implementation Steps
+                </h2>
+                <span class="px-5 py-2 bg-white text-slate-600 text-sm font-semibold rounded-3xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-server"></i>
+                    12 VMs • 3 Clouds • HA Pairs • DHCP + TSIG
+                </span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-8 py-5 font-semibold w-2/5 border-b border-slate-700">SECTION</th>
+                        <th class="px-8 py-5 font-semibold border-b border-slate-700">DETAILED STEPS</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+
+                    <!-- Section 1 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-circle-check text-emerald-500 icon-circle"></i>
+                                1. Prerequisites (Common)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ol class="space-y-4 text-sm">
+                                <li class="flex gap-3"><span class="font-mono bg-slate-100 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0">1</span>Obtain BlueCat licenses (MDDS 9.x + Edge Service Point v4) and Micetro Central installer.</li>
+                                <li class="flex gap-3"><span class="font-mono bg-slate-100 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0">2</span>Prepare SSH key pair <code>bluecat-key</code> and admin user <code>bluecat</code>.</li>
+                                <li class="flex gap-3"><span class="font-mono bg-slate-100 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0">3</span>Ensure Equinix Fabric Cloud Router BGP peering is pre-staged (ASN 64512, VIP 10.100.100.100/32).</li>
+                                <li class="flex gap-3"><span class="font-mono bg-slate-100 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0">4</span>Install Terraform 1.5+ locally (or use manual Marketplace deployment).</li>
+                                <li class="flex gap-3"><span class="font-mono bg-slate-100 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0">5</span>Prepare Windows Server 2022/2025 VM in Azure East US 2 for Micetro Central.</li>
+                                <li class="flex gap-3"><span class="font-mono bg-slate-100 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0">6</span>Open required ports: UDP/TCP 53 (DNS), TCP 179 (BGP), TCP 443 (Micetro/BlueCat consoles).</li>
+                            </ol>
+                        </td>
+                    </tr>
+
+                    <!-- Section 2 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-windows text-blue-500 icon-circle"></i>
+                                2. Deploy Micetro Central on Windows
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="space-y-3 text-sm">
+                                <li>Deploy a dedicated Windows Server VM in the corporate hub VNET (Azure East US 2 recommended).</li>
+                                <li>Download latest Micetro Central installer from BlueCat customer portal.</li>
+                                <li>Run installer → select <strong>Central</strong> role → join to AD domain <code>corp.root</code>.</li>
+                                <li>After installation, access console at <code>https://micetro-central.corp.example.com</code>.</li>
+                                <li>Add all future BlueCat appliances (MDDS + Edge) by IP address and approve.</li>
+                                <li>Configure Micetro for zone management (prepare for NA AD zone import per workshop session 1.3A).</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- Section 3 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-users-gear text-violet-500 icon-circle"></i>
+                                3. Micetro RBAC – LDAP Groups &amp; Role-Based Access
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>Prerequisites:</strong> Micetro Central is domain-joined to <code>corp.root</code> and LDAP authentication is enabled.</p>
+                                <ol class="list-decimal pl-5 space-y-3">
+                                    <li>In Active Directory (corp.root), create the following security groups:<br><code>DDI-Admins</code>, <code>DDI-Engineers</code>, <code>DDI-Developers</code>, <code>DDI-ReadOnly</code></li>
+                                    <li>In Micetro Central console → <strong>Administration</strong> → <strong>Users &amp; Groups</strong> → <strong>Import from LDAP</strong>.</li>
+                                    <li>Search and import the four DDI groups.</li>
+                                    <li>Assign roles:<br>• <strong>DDI-Admins</strong> → Full Administrator role<br>• <strong>DDI-Engineers</strong> → Engineer role (full configuration rights)<br>• <strong>DDI-Developers</strong> → Developer role (zone &amp; record management)<br>• <strong>DDI-ReadOnly</strong> → Read-Only role (view-only access)</li>
+                                    <li>Apply any custom restrictions (e.g., limit DDI-Developers to specific zones or clouds).</li>
+                                    <li>Test login with a member of each group to confirm appropriate permissions.</li>
+                                </ol>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 4 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-lock text-amber-500 icon-circle"></i>
+                                4. Configure TLS Certificates (with SAN Support)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <ol class="list-decimal pl-5 space-y-3">
+                                    <li>Request certificates from the corporate PKI (or Let’s Encrypt / internal CA) for each BlueCat appliance and Micetro Central.</li>
+                                    <li>In the certificate request, include the following Subject Alternative Names (SANs):<br>• Primary FQDN (e.g., <code>mdds-az-01.dns.corp.example.com</code>)<br>• Shortname alias (<code>mdds-az-01</code>)<br>• Anycast VIP hostname (<code>dns.corp.example.com</code>)<br>• IP address of the anycast VIP (10.100.100.100)</li>
+                                    <li>Upload the signed certificate + private key via the BlueCat appliance web UI (System → TLS Certificate).</li>
+                                    <li>For Micetro Central: In Micetro console → <strong>Administration</strong> → <strong>Server Settings</strong> → <strong>HTTPS</strong> → upload the certificate bundle.</li>
+                                    <li>Restart services and verify HTTPS access on port 443 with no certificate warnings.</li>
+                                    <li>Confirm shortname alias resolution works (e.g., <code>https://mdds-az-01</code> loads correctly).</li>
+                                </ol>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 5 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-magnifying-glass text-teal-500 icon-circle"></i>
+                                5. Example NSLOOKUP Commands for Testing
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p>Run from any Windows or Linux test client pointing to the anycast VIP or individual Edge/MDDS IPs.</p>
+                                <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto leading-relaxed">nslookup
+&gt; server 10.100.100.100
+&gt; set type=A
+&gt; www.example.com
+
+&gt; set type=PTR
+&gt; 10.100.100.100
+
+&gt; set debug
+&gt; www.example.com
+
+&gt; set type=NS
+&gt; corp.example.com
+
+&gt; set type=SOA
+&gt; corp.example.com
+
+&gt; set type=MX
+&gt; example.com
+
+&gt; ls -d corp.example.com          (zone transfer test - if permitted)
+&gt; exit</pre>
+                                <p class="text-xs text-slate-500 mt-2">Additional useful commands: <code>set vc</code> (use TCP), <code>set recurse</code>, <code>set norecurse</code>, <code>set timeout=2</code></p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 6 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-microsoft text-blue-500 icon-circle"></i>
+                                6. Azure East US 2 Deployment (HA Pair)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>DNS Subnet:</strong> 192.168.16.0/24 • Use Terraform from architecture report (provider.tf + variables.tf + main.tf).</p>
+                                <ol class="list-decimal pl-5 space-y-2">
+                                    <li>Create resource group <code>rg-bluecat-dns-prod-eastus2</code>.</li>
+                                    <li>Deploy 2× MDDS VMs (192.168.16.10 / .11) using Azure Marketplace image <strong>BlueCat MDDS 9.x</strong>.</li>
+                                    <li>Deploy 2× Edge Resolver VMs (192.168.16.20 / .21) using <strong>BlueCat Edge Service Point v4</strong>.</li>
+                                    <li>Add secondary private IP <code>10.100.100.100/32</code> to each VM NIC (anycast VIP).</li>
+                                    <li>Configure NSG: Allow UDP/TCP 53, TCP 179 (BGP), SSH 22.</li>
+                                    <li>SSH to each VM as <code>bluecat</code> and run FRR/BGP config:<br>
+                                        <pre class="mt-2 bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">sudo apt update &amp;&amp; sudo apt install frr -y
+sudo vtysh -c "configure terminal" -c "router bgp 64512" -c "bgp router-id &lt;VM-PRIMARY-IP&gt;" -c "neighbor &lt;EQUINIX-ROUTER-IP&gt; remote-as 65515" -c "address-family ipv4 unicast" -c "network 10.100.100.100/32" -c "exit-address-family" -c "end" -c "write"
+sudo systemctl restart frr</pre>
+                                    </li>
+                                    <li>In Micetro Central: Add servers → configure MDDS as Authoritative, Edge as Recursive with shadow-mode forwarding to legacy AD DCs.</li>
+                                </ol>
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs">
+                                    <strong>Health Checks (Azure):</strong><br>
+                                    • <code>dig @192.168.16.20 www.example.com</code><br>
+                                    • <code>vtysh -c "show ip bgp summary"</code> (peers Established)<br>
+                                    • Micetro Servers dashboard (green sync status)<br>
+                                    • <code>curl -I http://localhost:8080</code> (Edge health)
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 7 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-aws text-orange-500 icon-circle"></i>
+                                7. AWS us-east-2 Deployment (HA Pair)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>DNS Subnet:</strong> 192.168.20.0/24 (multi-AZ) • Use Terraform from architecture report.</p>
+                                <ol class="list-decimal pl-5 space-y-2">
+                                    <li>Deploy 2× MDDS VMs (192.168.20.10 / .11) using AWS Marketplace AMI <strong>BlueCat MDDS 9.x</strong>.</li>
+                                    <li>Deploy 2× Edge Resolver VMs (192.168.20.20 / .21) using <strong>BlueCat Edge Service Point v4</strong>.</li>
+                                    <li>Assign secondary private IP <code>10.100.100.100</code> on each ENI.</li>
+                                    <li>Attach to TGW (ASN 64512) and configure Security Group (UDP/TCP 53 + BGP 179).</li>
+                                    <li>SSH to each VM and apply identical FRR/BGP config (neighbor uses TGW ASN 64512).</li>
+                                    <li>Add servers to Micetro Central.</li>
+                                </ol>
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs">
+                                    <strong>Health Checks (AWS):</strong><br>
+                                    • Same DNS + BGP checks as Azure<br>
+                                    • <code>aws ec2 describe-network-interfaces --network-interface-ids &lt;ENI&gt;</code> (confirm secondary IP)<br>
+                                    • <code>nslookup www.example.com 10.100.100.100</code> (local test)
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 8 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-google text-red-500 icon-circle"></i>
+                                8. GCP us-east4 Deployment (HA Pair)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>DNS Subnet:</strong> 192.168.30.0/24 • Use Terraform from architecture report.</p>
+                                <ol class="list-decimal pl-5 space-y-2">
+                                    <li>Deploy 2× MDDS VMs (192.168.30.10 / .11) using image <code>projects/bluecat-public/global/images/bluecat-dns-for-gcp</code>.</li>
+                                    <li>Deploy 2× Edge Resolver VMs (192.168.30.20 / .21) using <code>bluecat-edge-service-point-v4-for-gcp</code>.</li>
+                                    <li>Configure alias IP range <code>10.100.100.100/32</code> on each network interface.</li>
+                                    <li>Create Cloud Router (ASN 16550) and firewall rules for DNS + BGP.</li>
+                                    <li>SSH to each VM and apply FRR/BGP config (neighbor = Cloud Router IP).</li>
+                                    <li>Add to Micetro Central.</li>
+                                </ol>
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs">
+                                    <strong>Health Checks (GCP):</strong><br>
+                                    • <code>gcloud compute instances describe &lt;VM&gt; --show-metadata</code> (verify alias IP)<br>
+                                    • Same DNS/BGP/Micetro checks
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 9 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-handshake text-amber-500 icon-circle"></i>
+                                9. Final Readiness &amp; Handover
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="space-y-3 text-sm">
+                                <li>All 12 VMs online with FRR peering <strong>Established</strong> (no advertisement yet).</li>
+                                <li>Micetro Central shows all servers green and synced.</li>
+                                <li>Execute workshop session 1.4 Data Integrity Check on all appliances.</li>
+                                <li>Provide Network team with VM IPs, ASN 64512, VIP 10.100.100.100/32, and FRR configs.</li>
+                                <li>Confirm readiness for BGP advertisement via Equinix Fabric.</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- Section 10 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-chart-line text-purple-500 icon-circle"></i>
+                                10. BGP Testing Scenarios (After Network Advertisement)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ol class="space-y-6 text-sm list-decimal pl-5">
+                                <li><strong>Scenario 1 – Basic Failover</strong><br>
+                                    Run continuous <code>nslookup www.example.com 10.100.100.100</code> (from a test client). SSH to one Edge VM and run <code>sudo systemctl stop frr</code> → confirm &lt;5s convergence to remaining nodes (workshop 1.2).</li>
+                                <li><strong>Scenario 2 – AS-Path Prepending</strong><br>
+                                    On one VM run:<br>
+                                    <code>vtysh -c "configure terminal" -c "neighbor &lt;peer&gt; route-map PREPEND out"</code><br>
+                                    Monitor route preference shift in <code>vtysh -c "show ip bgp 10.100.100.100"</code>.</li>
+                                <li><strong>Scenario 3 – Full Cloud Withdrawal</strong><br>
+                                    Stop FRR on both Azure nodes → verify traffic instantly shifts to AWS/GCP nodes → re-enable and confirm return.</li>
+                                <li><strong>Scenario 4 – Health-Based Withdrawal</strong><br>
+                                    Simulate high CPU on one Edge Resolver (or implement BlueCat health probe) → confirm automatic BGP withdrawal and traffic failover.</li>
+                            </ol>
+                        </td>
+                    </tr>
+
+                    <!-- Section 11 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-network-wired text-emerald-500 icon-circle"></i>
+                                11. Azure DHCP Options &amp; Client VNet Configuration
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p class="font-semibold">Azure fully manages DHCP for all VMs in a Virtual Network. Only Option 6 (DNS Servers) is controllable at VNet level.</p>
+                                <table class="w-full text-xs border border-slate-200">
+                                    <thead class="bg-slate-100">
+                                        <tr><th class="px-3 py-2 text-left">DHCP Option</th><th class="px-3 py-2 text-left">Azure Configuration Method</th><th class="px-3 py-2 text-left">Value in POC</th><th class="px-3 py-2 text-left">Effect</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="px-3 py-2 border-t">Option 6 (DNS Servers)</td><td class="px-3 py-2 border-t"><code>dns_servers</code> in <code>azurerm_virtual_network</code></td><td><code>["10.100.100.100"]</code></td><td>Windows 11 workstations receive BlueCat anycast VIP after lease renewal</td></tr>
+                                    </tbody>
+                                </table>
+                                <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">resource "azurerm_virtual_network" "client_vnet" {
+  name                = "vnet-client-eastus"
+  location            = "eastus"
+  resource_group_name = "rg-qsr-test-workstations"
+  address_space       = ["10.20.0.0/16"]
+  dns_servers         = ["10.100.100.100"]
+}</pre>
+                                <p class="text-xs">Existing VMs: <code>ipconfig /release &amp;&amp; ipconfig /renew</code> or reboot. New VMs receive immediately.</p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 12 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-server text-amber-500 icon-circle"></i>
+                                12. Testing BlueCat DHCP Functionality in Cloud-Hosted Workloads
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>Azure Limitation:</strong> Azure hypervisor DHCP is mandatory. BlueCat DHCP serves via unicast / relay only.</p>
+                                <ol class="list-decimal pl-5 space-y-3">
+                                    <li>Configure DHCP scopes in Micetro Central on Edge/MDDS appliances (DNS option = 10.100.100.100).</li>
+                                    <li>Deploy small Linux relay VM in client VNet or use <strong>dhtest</strong> simulator on existing Windows 11 VMs.</li>
+                                    <li>Relay example (isc-dhcp-relay):<br><code>sudo apt install isc-dhcp-relay</code><br>Edit <code>/etc/default/isc-dhcp-relay</code> → SERVERS="&lt;BLUECAT-DHCP-IP&gt;"</li>
+                                    <li>Simulator test:<br><code>sudo dhtest -i eth0 -r &lt;BLUECAT-DHCP-IP&gt; -m 00:11:22:33:44:55 -c 5</code></li>
+                                    <li>Verify leases in Micetro → DHCP → Leases and confirm DNS option on clients.</li>
+                                </ol>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 13 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-key text-violet-500 icon-circle"></i>
+                                13. TSIG Verification Steps (DDNS Security)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <ol class="list-decimal pl-5 space-y-3">
+                                    <li>In Micetro Central → Administration → TSIG Keys → Generate key (name: <code>qsr-ddns-tsig</code>, HMAC-SHA256).</li>
+                                    <li>Assign key to zone(s) → Properties → TSIG Key for Dynamic Updates.</li>
+                                    <li>On Windows 11 test VM: <code>ipconfig /release &amp;&amp; ipconfig /renew &amp;&amp; ipconfig /registerdns</code></li>
+                                    <li>Verify in Micetro: DNS → Zone → Records (look for “Signed” or audit log entry).</li>
+                                    <li>Test failure: Remove key temporarily → confirm rejection in logs.</li>
+                                </ol>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Section 14 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-globe text-sky-500 icon-circle"></i>
+                                14. Conditional DNS Servers via DHCP (Global Anycast vs ECS/Regional)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>Global Anycast path (default):</strong> Scope → IPv4 Options → Option 6: <code>10.100.100.100</code></p>
+                                <p><strong>ECS-aware / Regional path:</strong></p>
+                                <ol class="list-decimal pl-5 space-y-3">
+                                    <li>Create Client Class in Micetro (based on Option 82, MAC, subnet, or Vendor Class).</li>
+                                    <li>Assign class → Option 6: specific regional Edge Resolver IP (e.g., Azure East US 2 Edge 192.168.16.20).</li>
+                                    <li>Enable ECS on target Edge Resolver → DNS → Resolver → Advanced → Client Subnet Support.</li>
+                                    <li>Windows 11 VMs (via relay) will receive the appropriate DNS server based on class.</li>
+                                    <li>Verify: <code>ipconfig /all | findstr "DNS Servers"</code></li>
+                                </ol>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- New Section 15 (added for v1.5) -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-magnifying-glass text-purple-500 icon-circle"></i>
+                                15. Packet Capture &amp; Traffic Analysis (Wireshark + netsh ETW + ETL to PCAP)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="space-y-4 text-sm">
+                                <p><strong>Purpose:</strong> Capture and analyze DHCP requests, DNS queries to the anycast VIP, TSIG-signed DDNS updates, and BGP traffic on Windows 11 test workstations.</p>
+                                <ol class="list-decimal pl-5 space-y-3">
+                                    <li><strong>Install Wireshark</strong> on each Windows 11 VM:<br>
+                                        Download latest installer from <code>https://www.wireshark.org/download.html</code> → Run as Administrator → Complete installation (include Npcap).</li>
+                                    <li><strong>Start Windows Event Tracing (netsh) capture</strong> (elevated Command Prompt):<br>
+                                        <pre class="mt-2 bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs">netsh trace start capture=yes tracefile=C:\DNS-DHCP-Capture.etl maxSize=512 report=disabled</pre></li>
+                                    <li>Reproduce traffic: Run <code>ipconfig /release</code>, <code>ipconfig /renew</code>, <code>ipconfig /registerdns</code>, and DNS queries against 10.100.100.100.</li>
+                                    <li><strong>Stop the trace</strong>:<br>
+                                        <pre class="mt-2 bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs">netsh trace stop</pre></li>
+                                    <li><strong>Download etl2pcapng</strong> (latest release from GitHub: <code>https://github.com/microsoft/etl2pcapng/releases</code>).<br>
+                                        Place <code>etl2pcapng.exe</code> in <code>C:\Tools</code> and run:<br>
+                                        <pre class="mt-2 bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs">C:\Tools\etl2pcapng.exe C:\DNS-DHCP-Capture.etl C:\DNS-DHCP-Capture.pcapng</pre></li>
+                                    <li><strong>Open the PCAP in Wireshark</strong>:<br>
+                                        File → Open → <code>C:\DNS-DHCP-Capture.pcapng</code><br>
+                                        Apply display filters:<br>
+                                        • <code>dhcp</code> (DHCP offers/acks)<br>
+                                        • <code>dns</code> (queries to 10.100.100.100)<br>
+                                        • <code>dns.tsig</code> (TSIG-signed updates)<br>
+                                        • <code>bgp</code> (if capturing from appliances)</li>
+                                    <li>Save the .pcapng for workshop documentation or troubleshooting.</li>
+                                </ol>
+                                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs">
+                                    <strong>Tip:</strong> Run the netsh trace on multiple Windows 11 VMs simultaneously for parallel client-side validation of DHCP option propagation and anycast resolution.
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-12 flex items-center justify-between text-xs text-slate-400 font-medium border-t pt-8">
+            <div>BlueCat MDDS + Edge Resolver HA Anycast-Ready Implementation Guide <span class="text-sky-600">v1.5</span></div>
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="window.print()" class="no-print flex items-center gap-2 hover:text-slate-600">
+                    <i class="fa-solid fa-print"></i>
+                    <span>PRINT / SAVE AS PDF</span>
+                </a>
+                <div>Suggested filename: <span class="font-mono bg-slate-100 px-3 py-1 rounded-2xl">BlueCat-MDDS-Edge-Resolver-Implementation-Guide-v1.5.html</span></div>
+                <div class="text-emerald-500 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Single-engineer ready
+                </div>
+            </div>
+            <div>Global Technology Infrastructure Operations • QSR Restaurant Company • v1.5</div>
+        </div>
+    </div>
+
+    <script>
+        function initializeTailwind() {
+            tailwind.config = { content: [], theme: { extend: {} } };
+        }
+        initializeTailwind();
+        console.log('%c✅ BlueCat Implementation Guide v1.5 loaded. Ready for PDF export.', 'color:#0ea5e9; font-weight:600');
+    </script>
+</body>
+</html>

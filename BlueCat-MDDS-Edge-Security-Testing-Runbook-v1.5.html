@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueCat MDDS + Edge Resolver Security Testing Runbook v1.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        :root { --tw-color-primary: #0ea5e9; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); }
+        .table-row { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .table-row:hover { background-color: #f8fafc; transform: translateY(1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        @media print { body { font-size: 11pt; } .gradient-header { background: #0ea5e9 !important; color: white !important; } .no-print { display: none !important; } }
+        .icon-circle { transition: transform 0.2s ease; }
+        .table-row:hover .icon-circle { transform: scale(1.1); }
+        .note { background: #ecfdf5; border-left: 4px solid #10b981; }
+        .info-box { background: #f0f9ff; border-left: 4px solid #0ea5e9; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- HEADER -->
+    <header class="gradient-header text-white py-12 shadow-lg print:py-8">
+        <div class="max-w-7xl mx-auto px-8 lg:px-12">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fa-solid fa-shield-halved text-4xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-semibold tracking-tight">BlueCat MDDS + Edge Resolver</h1>
+                        <p class="text-2xl text-sky-100">Security Testing Runbook <span class="inline-block bg-white/30 text-white text-sm font-medium px-3 py-1 rounded-full ml-3">v1.5</span></p>
+                        <p class="text-sky-100/90 mt-1">QSR Global DNS POC • Anycast VIP 10.100.100.100 • Equinix Fabric Backbone</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>RPZ + TSIG Ready</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-exchange-alt"></i>
+                        <span>BGP Withdrawal Tested</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>SIEM + Views + Sinkhole</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-8 lg:px-12 py-10">
+
+        <!-- INSTRUCTIONS -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 p-8 mb-12">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0 w-10 h-10 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-info-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">Workshop Discussion Document</h2>
+                    <p class="text-slate-600 leading-relaxed">This consolidated runbook combines all prior security testing scenarios for the BlueCat MDDS + Edge Resolver anycast deployment in the QSR Global DNS POC. It is structured as a clean two-column table for quick reference and easy printing. All ordered steps are copy-paste ready and reference the shared DNS VPC (192.168.30.0/24), anycast VIP 10.100.100.100, Micetro Central, and Equinix Fabric BGP. Follow sections sequentially.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TWO-COLUMN TABLE -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold flex items-center gap-3">
+                    <i class="fa-solid fa-list-check text-sky-600"></i>
+                    BlueCat MDDS + Edge Resolver Security Testing Runbook
+                </h2>
+                <span class="px-5 py-2 bg-white text-slate-600 text-sm font-semibold rounded-3xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    RPZ • TSIG • Rate Limiting • SIEM • DNS Views • Sinkholing
+                </span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-8 py-5 font-semibold w-2/5 border-b border-slate-700">SECTION</th>
+                        <th class="px-8 py-5 font-semibold border-b border-slate-700">DETAILED STEPS</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+
+                    <!-- 1. Objective -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-bullseye text-emerald-500 icon-circle"></i>
+                                1. Workshop Objective
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Validate all security controls for BlueCat MDDS (authoritative) + Edge Resolver (recursive) anycast deployment in the shared DNS VPC (192.168.30.0/24) across Azure, AWS, and GCP. Confirm RPZ, TSIG, rate limiting, DNSSEC, BGP health-based withdrawal, SIEM integration, alerting, DNS Views, and sinkholing function correctly while maintaining CORP/Market tenant isolation and global 24×7 restaurant operations.
+                            <div class="info-box p-5 rounded-2xl mt-6 text-sm">
+                                <strong>QSR Relevance:</strong> These controls enforce strict tenant isolation between Market entities and CORP global services, protect against external threats at peak traffic hours, and provide audit-ready evidence for compliance.
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- 2. Prerequisites -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-list-check text-blue-500 icon-circle"></i>
+                                2. Prerequisites
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-1 text-sm">
+                                <li>Micetro Central console access with DDI-Engineer role</li>
+                                <li>Windows 11 test VMs in East/Central client VNets and intra-VPC Windows Server in DNS spoke</li>
+                                <li>dnsperf, PowerShell 7+, Flamethrower (optional) installed on test clients</li>
+                                <li>FRR/BGP peering Established for 10.100.100.100/32</li>
+                                <li>Corporate SIEM (Splunk/Azure Sentinel) endpoint configured for syslog</li>
+                                <li>BlueCat Analytics dashboard access enabled</li>
+                            </ul>
+                            <div class="note p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Tip:</strong> All test clients should already point to the unified anycast VIP 10.100.100.100. No client-side DNS changes are required for Views or sinkholing tests.
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- 3. Server-Side Testing -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-server text-rose-500 icon-circle"></i>
+                                3. Server-Side Testing (MDDS + Edge Appliances)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fa-solid fa-shield-virus text-rose-500"></i>
+                                <strong>3.1 RPZ Threat Feed Blocking</strong>
+                            </div>
+                            1. Log into Micetro Central console → navigate to DNS → Resolver → select one of the Edge Resolver instances → click the Advanced tab → scroll to Response Policy Zones section.<br>
+                            2. Click “Import” and upload a test RPZ feed file (example: Malware Domain List CSV containing domains such as “malware.example.test”).<br>
+                            3. Apply and save the policy to all Edge Resolver instances (Azure, AWS, GCP).<br>
+                            4. From any test client VM run: <code>nslookup known-bad-domain.test 10.100.100.100</code>.<br>
+                            5. Verify the response is NXDOMAIN or redirected to the configured sinkhole IP.<br>
+                            6. Check Micetro audit log (Administration → Audit) and Edge resolver logs for the RPZ hit entry.<br>
+                            <div class="note p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Expected Result:</strong> Malicious domains are blocked instantly. <strong>QSR Benefit:</strong> Prevents phishing and malware callbacks from restaurant POS systems.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-fire-flame-curved text-orange-500"></i>
+                                <strong>3.2 Rate Limiting &amp; DoS Protection</strong>
+                            </div>
+                            1. SSH to each Edge VM and verify the rate-limit rule: <code>sudo nft list ruleset | grep 50</code>.<br>
+                            2. From a single test VM launch a flood exceeding 50 QPS, for example using PowerShell: <code>1..20000 | ForEach-Object -Parallel { Resolve-DnsName -Name www.example.com -Server 10.100.100.100 -Quick } -ThrottleLimit 100</code> or dnsperf command: <code>dnsperf -s 10.100.100.100 -d queries.txt -c 100 -l 30</code>.<br>
+                            3. Monitor Edge VM CPU/memory via <code>htop</code> and nftables counters with <code>sudo nft list ruleset</code>.<br>
+                            4. Confirm legitimate queries from a second client continue without interruption.<br>
+                            5. Verify dropped packets appear in Edge logs.<br>
+                            <div class="note p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Expected Result:</strong> Excess queries are dropped while valid traffic flows. <strong>QSR Benefit:</strong> Maintains DNS availability during DDoS events at 48,000 restaurants.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-lock text-amber-500"></i>
+                                <strong>3.3 ACLs &amp; Zone Transfer Controls</strong>
+                            </div>
+                            1. In Micetro → Zone → select corp.pri. → Properties → TSIG/ACLs tab: restrict AXFR/IXFR to only Micetro Central IP and hidden master IPs.<br>
+                            2. From an unauthorized test VM run: <code>dig @10.100.100.100 corp.pri. AXFR</code>.<br>
+                            3. Confirm response is REFUSED or connection timeout.<br>
+                            4. From authorized Micetro server repeat the same dig command and confirm successful full zone transfer.<br>
+                            <div class="note p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Expected Result:</strong> Zone transfers are denied to unauthorized clients.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-certificate text-teal-500"></i>
+                                <strong>3.4 DNSSEC Validation</strong>
+                            </div>
+                            1. In Micetro Central → DNS → Resolver → select Edge Resolver → Advanced tab: enable “DNSSEC Validation” and apply to all Edge nodes.<br>
+                            2. From test client run a signed domain query: <code>dig +dnssec example.com @10.100.100.100</code> (look for “AD” flag in output confirming validation).<br>
+                            3. Simulate forged response (concrete lab example): On a Linux test VM install scapy (<code>sudo apt install python3-scapy</code>), create a short script to craft and send a UDP packet with an invalid RRSIG signature for the same domain (or use a pre-built test tool such as “dnssec-forgery” script). Alternatively, temporarily create a test zone in Micetro with a deliberately bad DNSSEC record and query it from the Edge Resolver.<br>
+                            4. Confirm the Edge Resolver returns SERVFAIL on the forged query.<br>
+                            <div class="info-box p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Expected Result:</strong> Valid DNSSEC queries succeed; forged or tampered responses are rejected with SERVFAIL. <strong>QSR Benefit:</strong> Protects against cache poisoning attacks that could redirect restaurant traffic to malicious sites.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-route text-purple-500"></i>
+                                <strong>3.5 BGP Health-Based Withdrawal</strong>
+                            </div>
+                            1. SSH to one Edge VM and simulate high CPU load: <code>stress --cpu 8 --timeout 60</code>.<br>
+                            2. Immediately monitor BGP status: <code>vtysh -c "show ip bgp summary"</code> and <code>vtysh -c "show ip bgp 10.100.100.100"</code>.<br>
+                            3. Confirm the 10.100.100.100/32 prefix is withdrawn from that node within &lt;5 seconds.<br>
+                            4. From a client VM run continuous <code>while true; do nslookup www.example.com 10.100.100.100; sleep 0.5; done</code> and verify traffic automatically shifts to remaining healthy Edge nodes with zero resolution loss.
+                        </td>
+                    </tr>
+
+                    <!-- 4. Client-Side Testing -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-windows text-blue-500 icon-circle"></i>
+                                4. Client-Side Testing (Windows 11 Workstations)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fa-solid fa-key text-violet-500"></i>
+                                <strong>4.1 TSIG-Secured DDNS Updates</strong>
+                            </div>
+                            1. In Micetro → Administration → TSIG Keys: generate key named “qsr-ddns-tsig” (HMAC-SHA256) and assign it to the relevant zones.<br>
+                            2. Push the TSIG key via GPO to Windows 11 clients (Group Policy → Computer Configuration → Administrative Templates → Network → DNS Client).<br>
+                            3. On a test client run: <code>ipconfig /registerdns</code>.<br>
+                            4. Verify the signed update appears in Micetro audit log with “TSIG” indicator.<br>
+                            5. Temporarily remove the key from the zone and repeat step 3; confirm the update is rejected with “Refused” status.<br>
+                            <div class="info-box p-5 rounded-2xl mt-6 text-sm">
+                                <strong>QSR Relevance:</strong> Prevents unauthorized dynamic updates from compromised restaurant workstations.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-bolt text-orange-500"></i>
+                                <strong>4.2 DNS Query Flooding &amp; Rate-Limit Impact</strong>
+                            </div>
+                            1. From four Windows 11 VMs simultaneously run the parallel flood: <code>1..10000 | ForEach-Object -Parallel { Resolve-DnsName -Name www.example.com -Server 10.100.100.100 -Quick } -ThrottleLimit 200</code>.<br>
+                            2. Monitor anycast VIP reachability and Edge rate-limit counters in real time.<br>
+                            3. Confirm consistent resolution for non-flood clients running normal queries in parallel.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-ban text-red-500"></i>
+                                <strong>4.3 Cache Poisoning &amp; Spoofing Resistance</strong>
+                            </div>
+                            1. From a test client issue a recursive query: <code>nslookup www.microsoft.com 10.100.100.100</code>.<br>
+                            2. On a second Linux VM use a packet-crafting tool (e.g., scapy or hping3) to inject forged UDP responses with incorrect data on port 53.<br>
+                            3. Confirm the Edge Resolver drops the forged packets due to source-port randomization and DNSSEC validation.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-exchange-alt text-sky-500"></i>
+                                <strong>4.4 Client Failover During Platform Switch</strong>
+                            </div>
+                            1. On a client run a continuous loop: <code>while true; do nslookup www.example.com 10.100.100.100; sleep 0.3; done</code>.<br>
+                            2. Perform platform switch (Edge → EfficientIP) by updating forwarding rules/zones in Micetro.<br>
+                            3. After one TTL cycle run <code>ipconfig /flushdns</code> and confirm resolution switches with no interruption.
+                        </td>
+                    </tr>
+
+                    <!-- 5. Real-World Scenarios -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-globe text-amber-500 icon-circle"></i>
+                                5. Real-World Scenarios
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fa-solid fa-bomb text-red-500"></i>
+                                <strong>5.1 External DDoS on Anycast VIP (Peak-Hour Restaurant Traffic)</strong>
+                            </div>
+                            1. Coordinate with test team to launch sustained 10k+ QPS flood from external Azure test VMs targeting 10.100.100.100:53.<br>
+                            2. Monitor Equinix Fabric BGP sessions and Edge nftables counters in real time.<br>
+                            3. Trigger health-based withdrawal on the overloaded Edge node.<br>
+                            4. Measure client resolution success rate and BGP convergence time (&lt;5 seconds target).<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-user-secret text-violet-500"></i>
+                                <strong>5.2 Insider Threat – Unauthorized Dynamic Update from Market Tenant</strong>
+                            </div>
+                            1. From a Market VNet test VM attempt DDNS update without valid TSIG key: <code>ipconfig /registerdns</code>.<br>
+                            2. Confirm Micetro rejects the update and logs the event with “TSIG failure”.<br>
+                            3. Verify CORP zones remain untouched and no data leakage occurs.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-skull-crossbones text-rose-500"></i>
+                                <strong>5.3 Cache Poisoning Attempt During Recursive Resolution</strong>
+                            </div>
+                            1. Simulate phishing campaign by injecting forged responses for a high-traffic external domain (e.g., payment gateway).<br>
+                            2. Confirm DNSSEC validation + RPZ policy blocks the attempt.<br>
+                            3. Verify the incident is logged in Micetro and forwarded to SIEM.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-route text-purple-500"></i>
+                                <strong>5.4 BGP Hijack / Route Leak During Maintenance</strong>
+                            </div>
+                            1. From one cloud intentionally advertise a more-specific route or excessive AS-path prepend.<br>
+                            2. Monitor Equinix Fabric route preference and BGP attributes.<br>
+                            3. Confirm traffic automatically shifts to the healthiest anycast paths with zero client impact.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-virus text-red-500"></i>
+                                <strong>5.5 Ransomware Callback Blocking (Restaurant POS Infection)</strong>
+                            </div>
+                            1. Add known ransomware callback domains (e.g., “ransom-c2.example”) to the active RPZ feed.<br>
+                            2. From a simulated infected POS test VM query the callback domain.<br>
+                            3. Confirm immediate sinkhole redirect or NXDOMAIN.<br>
+                            4. Verify audit log entry and SIEM alert fire within seconds.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-tunnel text-amber-500"></i>
+                                <strong>5.6 DNS Tunneling / Data Exfiltration Attempt</strong>
+                            </div>
+                            1. Use dns2tcp or a similar tool from a test VM to generate long TXT/NULL queries simulating data exfiltration.<br>
+                            2. Monitor Edge Resolver query logs for anomalous patterns (high volume of unusual record types).<br>
+                            3. Confirm rate limiting or custom RPZ policy blocks the tunnel.<br>
+                            4. Verify the corresponding alert is raised in SIEM.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-building text-indigo-500"></i>
+                                <strong>5.7 Market Tenant Accessing CORP Payment Services (Isolation Test)</strong>
+                            </div>
+                            1. From a Market test VM attempt to resolve a CORP-only payment gateway domain (e.g., “pay.corp.pri.”).<br>
+                            2. Confirm the DNS View “market-restricted” returns NXDOMAIN or sinkhole.<br>
+                            3. From a CORP test VM repeat the query and confirm successful resolution.<br>
+                            4. Validate complete isolation between Market entities.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-cloud-arrow-up text-sky-500"></i>
+                                <strong>5.8 Threat Intelligence Feed Update Validation</strong>
+                            </div>
+                            1. Update the active RPZ feed with newly published threat domains.<br>
+                            2. Immediately query the newly added malicious domain from multiple client VNets.<br>
+                            3. Confirm blocking occurs within 60 seconds of feed ingestion across all Edge nodes.<br>
+                            4. Verify propagation and statistics in the Micetro Analytics dashboard.
+                        </td>
+                    </tr>
+
+                    <!-- 6. SIEM, Alerting & Monitoring -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-bell text-purple-500 icon-circle"></i>
+                                6. SIEM Integration, Alerting &amp; Monitoring
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fa-solid fa-plug text-emerald-500"></i>
+                                <strong>6.1 SIEM Integration &amp; Log Forwarding</strong>
+                            </div>
+                            1. In Micetro → Administration → Logging: enable syslog forwarding and configure the corporate SIEM endpoint (Splunk/Azure Sentinel).<br>
+                            2. In BlueCat Analytics → Settings: enable forwarding of DNS query logs, audit events, and RPZ hits.<br>
+                            3. On each Edge VM configure rsyslog to forward nftables and FRR logs to the same SIEM.<br>
+                            4. Generate test events (RPZ hit, TSIG failure, rate-limit breach).<br>
+                            5. Verify all events appear correlated in SIEM with correct timestamps and metadata.<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-exclamation-triangle text-amber-500"></i>
+                                <strong>6.2 Real-Time Alerting on Anomalous DNS Activity</strong>
+                            </div>
+                            1. In Micetro → Analytics → Alerts: create rules for &gt;500 QPS from single IP, RPZ hits &gt;10/min, TSIG failures &gt;5/min.<br>
+                            2. Configure alert actions (email notification + PagerDuty webhook).<br>
+                            3. Trigger an anomaly (e.g., query flood or invalid TSIG update).<br>
+                            4. Confirm alert fires within 30 seconds and includes full context (source IP, domain, Edge node).<br>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-chart-line text-sky-500"></i>
+                                <strong>6.3 Centralized Monitoring Dashboard Validation</strong>
+                            </div>
+                            1. Log into BlueCat Analytics → Dashboard and verify real-time widgets for query volume by cloud/Edge node, BGP peer status, RPZ block statistics, and cache hit/miss ratio.<br>
+                            2. Simulate failover by stopping one Edge node.<br>
+                            3. Confirm dashboard updates within 10 seconds and clearly shows automatic traffic shift to remaining nodes.<br>
+                            4. Export the 72-hour baseline report for production cutover reference.
+                        </td>
+                    </tr>
+
+                    <!-- 7. DNS Views & Sinkholing -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-eye text-violet-500 icon-circle"></i>
+                                7. DNS Views &amp; Sinkholing for Tenant Isolation
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fa-solid fa-split-screen text-violet-500"></i>
+                                <strong>7.1 DNS Views Configuration (Split-Horizon / Restricted Resolution)</strong>
+                            </div>
+                            1. In Micetro Central → Administration → DNS Views → click “Create” and name the new view “market-restricted”.<br>
+                            2. In the ACL section add all Market VNet CIDR blocks (example: 192.168.4.0/24 East, 192.168.5.0/24 Central, etc.).<br>
+                            3. Switch to the “market-restricted” view, select CORP-only zones (corp.pri., mcd.cloud.) and set the response type to “Deny” or leave the record set empty.<br>
+                            4. Apply the view to all Edge Resolver instances in the shared DNS VPC.<br>
+                            5. From a CORP test client run: <code>nslookup internal-service.corp.pri. 10.100.100.100</code> (should resolve normally).<br>
+                            6. From a Market test client repeat the identical query (should return NXDOMAIN or empty response).<br>
+                            <div class="info-box p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Additional Information:</strong> DNS Views allow the same anycast VIP 10.100.100.100 to serve completely different answers based on the client’s source IP, enforcing strict CORP/Market isolation without any client-side DNS reconfiguration.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-sink text-teal-500"></i>
+                                <strong>7.2 DNS Sinkholing Integration (RPZ + Views)</strong>
+                            </div>
+                            1. In Micetro → DNS → Response Policy Zones → create or edit a sinkhole policy.<br>
+                            2. Define a sinkhole IP (example: 10.100.100.999 pointing to a dedicated blackhole VM or null route).<br>
+                            3. Link the sinkhole policy to both the default view and the newly created “market-restricted” view.<br>
+                            4. For any restricted zones/records change the action from “Deny” to “Sinkhole”.<br>
+                            5. Apply the updated policy to all Edge Resolvers.<br>
+                            6. From a Market client query a restricted domain and confirm the response redirects to the sinkhole IP.<br>
+                            7. Verify the sinkhole action is recorded in Micetro audit log and Edge resolver logs.<br>
+                            <div class="note p-5 rounded-2xl mt-6 text-sm">
+                                <strong>Expected Result:</strong> Restricted clients are silently redirected to a sinkhole instead of receiving a plain NXDOMAIN, improving logging and threat-intelligence collection.
+                            </div>
+
+                            <div class="flex items-center gap-2 mt-8 mb-4">
+                                <i class="fa-solid fa-shuffle text-sky-500"></i>
+                                <strong>7.3 Combined View + Sinkhole Testing</strong>
+                            </div>
+                            1. Simultaneously run continuous queries from both CORP and Market test clients.<br>
+                            2. Confirm CORP clients receive full, normal resolution while Market clients are either denied or redirected to the sinkhole IP.<br>
+                            3. Validate that tenant isolation is fully enforced while all clients continue using the single unified anycast VIP 10.100.100.100.
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-12 flex items-center justify-between text-xs text-slate-400 font-medium border-t pt-8">
+            <div>BlueCat MDDS + Edge Resolver Security Testing Runbook <span class="text-sky-600">v1.5</span></div>
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="window.print()" class="no-print flex items-center gap-2 hover:text-slate-600">
+                    <i class="fa-solid fa-print"></i>
+                    <span>PRINT / SAVE AS PDF</span>
+                </a>
+                <div>Suggested filename: <span class="font-mono bg-slate-100 px-3 py-1 rounded-2xl">BlueCat-MDDS-Edge-Security-Testing-Runbook-v1.5.html</span></div>
+                <div class="text-emerald-500 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Single-engineer ready
+                </div>
+            </div>
+            <div>Global Technology Infrastructure Operations • QSR Restaurant Company • v1.5</div>
+        </div>
+    </div>
+
+    <script>
+        function initializeTailwind() { tailwind.config = { content: [], theme: { extend: {} } }; }
+        initializeTailwind();
+        console.log('%c✅ BlueCat MDDS + Edge Resolver Security Testing Runbook v1.5 loaded. Ready for PDF export.', 'color:#0ea5e9; font-weight:600');
+    </script>
+</body>
+</html>
