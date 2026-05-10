@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QSR Global DNS Dataset — Summary Report v1.1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Familjen+Grotesk:wght@400;600;700&display=swap');
+
+:root {
+  --bg: #f4f1eb;
+  --ink: #1a1a18;
+  --ink2: #3d3d38;
+  --muted: #8a8878;
+  --rule: #d6d3ca;
+  --accent: #c8401a;
+  --accent2: #1a6bc8;
+  --accent3: #1a8c4a;
+  --warn: #b07a10;
+  --purple: #6b3ab0;
+  --surface: #ffffff;
+  --surface2: #eeeae1;
+  --tag-h: 22px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.mono { font-family: 'DM Mono', monospace; }
+
+/* ── HEADER ── */
+.page-header {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 48px 56px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 40%, var(--accent3) 70%, var(--warn) 100%);
+}
+
+.header-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a8878;
+  margin-bottom: 14px;
+}
+
+.page-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.page-header h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.header-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #6a6a60;
+  margin-top: 16px;
+}
+
+/* ── STAT STRIP ── */
+.stat-strip {
+  display: flex;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.stat-cell {
+  flex: 1;
+  padding: 24px 28px;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stat-cell:last-child { border-right: none; }
+
+.stat-num {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: 'Familjen Grotesk', sans-serif;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.s-red { color: var(--accent); }
+.s-blue { color: var(--accent2); }
+.s-green { color: var(--accent3); }
+.s-amber { color: var(--warn); }
+.s-purple { color: var(--purple); }
+
+/* ── MAIN LAYOUT ── */
+.main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 48px 56px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.full { grid-column: 1 / -1; }
+
+/* ── SECTION BLOCK ── */
+.block {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.block-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.block-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.block-body {
+  padding: 24px;
+}
+
+.block-rule {
+  border-left: 3px solid var(--accent);
+}
+.block-rule-blue { border-left: 3px solid var(--accent2); }
+.block-rule-green { border-left: 3px solid var(--accent3); }
+.block-rule-amber { border-left: 3px solid var(--warn); }
+.block-rule-purple { border-left: 3px solid var(--purple); }
+
+/* ── TAGS ── */
+.tag {
+  display: inline-flex; align-items: center;
+  height: var(--tag-h);
+  padding: 0 7px;
+  border-radius: 2px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tag-a    { background: #e8f7ee; color: var(--accent3); border: 1px solid #b8dfc8; }
+.tag-cname{ background: #ede8f7; color: var(--purple);  border: 1px solid #c8b8df; }
+.tag-txt  { background: #fdf3e5; color: var(--warn);    border: 1px solid #dfc898; }
+.tag-mx   { background: #fdf3e5; color: #9a5800;        border: 1px solid #dfc898; }
+.tag-srv  { background: #fde8e8; color: var(--accent);  border: 1px solid #f0b8b8; }
+.tag-ns   { background: #f0f0ee; color: var(--muted);   border: 1px solid var(--rule); }
+.tag-ptr  { background: #e8f0f7; color: #1a5090;        border: 1px solid #b8cfe0; }
+.tag-soa  { background: #f0eef7; color: #5530a0;        border: 1px solid #ccc0e0; }
+.tag-aaaa { background: #e8f4fd; color: var(--accent2); border: 1px solid #b0d4ef; }
+
+.tag-corp   { background: #1a1a18; color: #e8e5dc; }
+.tag-mkt    { background: var(--accent2); color: white; }
+.tag-poc    { background: var(--accent); color: white; }
+.tag-infra  { background: var(--accent3); color: white; }
+.tag-region { background: var(--surface2); color: var(--ink2); border: 1px solid var(--rule); }
+
+.tag-aws   { background: #ff9900; color: white; }
+.tag-azure { background: #0072c6; color: white; }
+.tag-gcp   { background: #4285f4; color: white; }
+.tag-all   { background: var(--ink); color: var(--bg); }
+
+.tag-ext { background: #ffe8f0; color: #9a0050; border: 1px solid #f0b8d0; }
+
+/* ── BAR CHART ── */
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.bar-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  width: 80px;
+  flex-shrink: 0;
+  color: var(--ink2);
+}
+.bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 1px;
+}
+.bar-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  width: 50px;
+  text-align: right;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.bar-val strong { color: var(--ink); }
+
+/* ── DONUT ── */
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.donut-legend { flex: 1; }
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-pct {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── ZONE MAP ── */
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.zone-card {
+  background: var(--surface2);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 10px 12px;
+  font-size: 11px;
+}
+
+.zone-card-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--accent2);
+  margin-bottom: 3px;
+  word-break: break-all;
+}
+
+.zone-card-meta {
+  color: var(--muted);
+  font-size: 10px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ── RULE LINES ── */
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 20px 0;
+}
+
+/* ── SCHEMA BOX ── */
+.schema-box {
+  background: var(--ink);
+  color: #c8e6c9;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 16px 20px;
+  border-radius: 2px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+.schema-comment { color: #546e50; }
+.schema-zone    { color: #80cbc4; }
+.schema-type    { color: #ffcc80; }
+.schema-ip      { color: #a5d6a7; }
+.schema-cname   { color: #ce93d8; }
+
+/* ── CSV CALLOUT ── */
+.csv-callout {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 28px 32px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 32px;
+}
+
+.csv-icon {
+  font-size: 48px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.csv-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.csv-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #8a8878;
+  line-height: 1.8;
+}
+
+.csv-filename {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #a5d6a7;
+  background: #2a2a26;
+  padding: 8px 14px;
+  border-radius: 2px;
+  margin-top: 12px;
+  display: inline-block;
+  letter-spacing: 0.02em;
+}
+
+/* ── NOTE ── */
+.note {
+  background: #fffbe8;
+  border: 1px solid #e8d890;
+  border-left: 3px solid var(--warn);
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink2);
+  border-radius: 2px;
+}
+
+/* ── MARKET GRID ── */
+.mkt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.mkt-card {
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 12px 14px;
+  background: var(--surface2);
+}
+
+.mkt-flag { font-size: 18px; margin-bottom: 4px; }
+.mkt-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.mkt-detail { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.6; }
+.mkt-bar { height: 3px; background: var(--rule); border-radius: 1px; margin-top: 8px; overflow: hidden; }
+.mkt-bar-fill { height: 100%; border-radius: 1px; background: var(--accent2); }
+
+/* ── FLOW DIAGRAM ── */
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.flow-node {
+  background: var(--surface2);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.flow-arrow {
+  font-size: 14px;
+  color: var(--muted);
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+.flow-corp { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.flow-blue { background: #deeef8; border-color: #a0c8e8; color: #0a4070; }
+.flow-green { background: #e0f2e8; border-color: #90d0a8; color: #0a5020; }
+
+/* ── ADDR TABLE ── */
+.addr-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+}
+.addr-row:last-child { border-bottom: none; }
+.addr-block { font-family: 'DM Mono', monospace; color: var(--accent2); width: 160px; flex-shrink: 0; }
+.addr-use { color: var(--ink2); flex: 1; }
+.addr-market { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+
+/* ── FOOTER ── */
+.footer {
+  background: var(--surface2);
+  border-top: 1px solid var(--rule);
+  padding: 20px 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+@media print {
+  .stat-strip { flex-wrap: wrap; }
+  .stat-cell { min-width: 120px; }
+  .main { grid-template-columns: 1fr; }
+  .full { grid-column: 1; }
+  .mkt-grid { grid-template-columns: repeat(2,1fr); }
+  .zone-grid { grid-template-columns: repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ─────────────────── HEADER ─────────────────── -->
+<div class="page-header">
+  <div class="header-eyebrow">GTIO · BlueCat MDDS + Edge Resolver POC · Anycast DNS</div>
+  <h1>QSR Global DNS Dataset<br><em>Summary Report</em> v1.1</h1>
+  <div class="header-sub">
+    Dataset: QSR_Global_DNS_Records_v1_1.csv &nbsp;·&nbsp; 1,894 records &nbsp;·&nbsp; 132 zones &nbsp;·&nbsp;
+    15 markets &nbsp;·&nbsp; 36 ccTLD zones &nbsp;·&nbsp; 10 global apps &nbsp;·&nbsp; 50 local apps/market &nbsp;·&nbsp;
+    Generated May 10 2026 &nbsp;·&nbsp; CONFIDENTIAL — GTIO Internal
+  </div>
+</div>
+
+<!-- ─────────────────── STAT STRIP ─────────────────── -->
+<div class="stat-strip">
+  <div class="stat-cell">
+    <span class="stat-num s-red">1,894</span>
+    <span class="stat-label">Total DNS Records</span>
+  </div>
+  <div class="stat-cell">
+    <span class="stat-num s-blue">132</span>
+    <span class="stat-label">DNS Zones</span>
+  </div>
+  <div class="stat-cell">
+    <span class="stat-num s-amber">36</span>
+    <span class="stat-label">ccTLD Zones (External)</span>
+  </div>
+  <div class="stat-cell">
+    <span class="stat-num s-green">15</span>
+    <span class="stat-label">Market Territories</span>
+  </div>
+  <div class="stat-cell">
+    <span class="stat-num s-red">10</span>
+    <span class="stat-label">Global Applications</span>
+  </div>
+  <div class="stat-cell">
+    <span class="stat-num s-blue">50</span>
+    <span class="stat-label">Local Apps / Market</span>
+  </div>
+  <div class="stat-cell">
+    <span class="stat-num s-purple">30</span>
+    <span class="stat-label">POC Test Cases</span>
+  </div>
+</div>
+
+<!-- ─────────────────── CSV CALLOUT ─────────────────── -->
+<div style="padding: 40px 56px 0;">
+  <div class="csv-callout">
+    <div class="csv-icon">⬇</div>
+    <div style="flex:1">
+      <div class="csv-title">All DNS Record Data — Exported to CSV</div>
+      <div class="csv-meta">
+        Format: Zone · Name · TTL · Type · RData · Entity · Market · Region · CloudPrimary · Note<br>
+        Encoding: UTF-8 · Delimiter: comma · Header row included · Import-ready for BlueCat Micetro, InfoBlox, AWS Route 53, Azure DNS, Google Cloud DNS<br>
+        Includes ccTLD subdomains (.co.uk · .fr · .de · .co.jp · .com.au · .com.br + 30 more) with full record sets
+      </div>
+      <div class="csv-filename">QSR_Global_DNS_Records_v1_1.csv &nbsp;·&nbsp; 1,895 lines (incl. header)</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Import guidance:</strong> The <span class="mono">Zone</span> column is the authoritative zone name. The <span class="mono">Name</span> column is the relative owner name within that zone (<code>@</code> = zone apex). For external DNS import (ccTLD zones), use the zone name as the hosted zone and all records with that zone value as the record set. TTL values are already POC-optimised (60s for anycast/POS, 300s for stable hosts, 10s for cache-flush test records). The <span class="mono">Entity</span> column tags CORP-GLOBAL / CORP-REGIONAL / CORP-INFRA / CORP-POC / MARKET-&lt;region&gt; for RBAC policy alignment in BlueCat Micetro.
+  </div>
+</div>
+
+<!-- ─────────────────── MAIN GRID ─────────────────── -->
+<div class="main">
+
+  <!-- LEFT: Record type breakdown -->
+  <div class="block block-rule">
+    <div class="block-header">
+      <span class="block-title">Record Distribution by Type</span>
+      <span class="mono" style="font-size:11px;color:var(--muted)">1,894 total</span>
+    </div>
+    <div class="block-body">
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-a">A</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:60%;background:var(--accent3)"></div></div>
+        <span class="bar-val"><strong>1,141</strong> 60%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-cname">CNAME</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:14.5%;background:var(--purple)"></div></div>
+        <span class="bar-val"><strong>275</strong> 14.5%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-soa">SOA</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:7%;background:#888"></div></div>
+        <span class="bar-val"><strong>132</strong> 7%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-ns">NS</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:5.5%;background:#aaa"></div></div>
+        <span class="bar-val"><strong>104</strong> 5.5%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-txt">TXT</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:6%;background:var(--warn)"></div></div>
+        <span class="bar-val"><strong>112</strong> 6%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-mx">MX</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:2.7%;background:#b07a10"></div></div>
+        <span class="bar-val"><strong>52</strong> 2.7%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-srv">SRV</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:2.4%;background:var(--accent)"></div></div>
+        <span class="bar-val"><strong>46</strong> 2.4%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-ptr">PTR</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:1.6%;background:#1a5090"></div></div>
+        <span class="bar-val"><strong>31</strong> 1.6%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label"><span class="tag tag-aaaa">AAAA</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:0.1%;background:var(--accent2)"></div></div>
+        <span class="bar-val"><strong>1</strong> &lt;0.1%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: By entity -->
+  <div class="block block-rule-blue">
+    <div class="block-header">
+      <span class="block-title">Records by Entity Type</span>
+    </div>
+    <div class="block-body">
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-mkt" style="font-size:8px">MARKET-APAC</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:34%;background:var(--accent2)"></div></div>
+        <span class="bar-val"><strong>649</strong> 34.3%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-mkt" style="font-size:8px">MARKET-EU</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:25.6%;background:#3a8fc8"></div></div>
+        <span class="bar-val"><strong>485</strong> 25.6%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-mkt" style="font-size:8px">MARKET-LATAM</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:11.8%;background:#4a9fd8"></div></div>
+        <span class="bar-val"><strong>223</strong> 11.8%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-mkt" style="font-size:8px">MARKET-NA</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:10.8%;background:#5ab0e8"></div></div>
+        <span class="bar-val"><strong>204</strong> 10.8%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-corp" style="font-size:8px">CORP-GLOBAL</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:6.7%;background:var(--ink)"></div></div>
+        <span class="bar-val"><strong>127</strong> 6.7%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-mkt" style="font-size:8px">MARKET-MENA</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:6.4%;background:#6ac0f8"></div></div>
+        <span class="bar-val"><strong>122</strong> 6.4%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-infra" style="font-size:8px">CORP-REGIONAL</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:1.8%;background:var(--accent3)"></div></div>
+        <span class="bar-val"><strong>35</strong> 1.8%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-poc" style="font-size:8px">CORP-POC</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:1.4%;background:var(--accent)"></div></div>
+        <span class="bar-val"><strong>26</strong> 1.4%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label" style="width:100px"><span class="tag tag-infra" style="font-size:8px">CORP-INFRA</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width:1.2%;background:#1a6b30"></div></div>
+        <span class="bar-val"><strong>23</strong> 1.2%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL: Zone inventory breakdown -->
+  <div class="block full block-rule-green">
+    <div class="block-header">
+      <span class="block-title">Zone Inventory — 132 Zones by Category</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag tag-corp">CORP 18</span>
+        <span class="tag tag-mkt">MARKET 78</span>
+        <span class="tag tag-ext">ccTLD 36</span>
+      </div>
+    </div>
+    <div class="block-body">
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">CORP Global · Regional · Infrastructure · POC (18 zones)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="mono" style="font-size:10px;color:var(--ink2)">corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">dns.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">pos.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">iam.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">menu.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">supply.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">bi.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">vault.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">mon.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">ntp.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">infra.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">equinix.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">na-hub.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">eu-hub.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">apac-hub.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">latam-hub.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">mc-poc-test.corp.root</span>
+          <span class="mono" style="font-size:10px;color:var(--ink2)">bluecat-edge.corp.root</span>
+        </div>
+      </div>
+
+      <hr>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">Market Internal Zones — 78 zones (mkt.root / sub-zones / pos / app / PTR)</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px">🇺🇸 USA (17)</div>
+            <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.8">
+              us.mkt.root<br>pos.us.mkt.root<br>app.us.mkt.root<br>east/west/central.us<br>mc-loyalty.us<br>mc-delivery.us<br>mc-kiosk.us<br>mc-cctv.us<br>mc-hvac.us<br>mc-voice.us<br>mc-signage.us<br>10.10.in-addr.arpa<br>na.mkt.root<br>+4 more
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px">🇨🇳 China (9)</div>
+            <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.8">
+              cn.mkt.root<br>pos.cn.mkt.root<br>app.cn.mkt.root<br>north.cn.mkt.root<br>south.cn.mkt.root<br>mc-miniprog.cn<br>mc-delivery.cn<br>mc-loyalty.cn<br>20.10.in-addr.arpa
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px">🇯🇵 Japan (6)</div>
+            <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.8">
+              jp.mkt.root<br>pos.jp.mkt.root<br>app.jp.mkt.root<br>mc-kiosk.jp<br>mc-delivery.jp<br>21.10.in-addr.arpa
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px">🇫🇷🇬🇧🇩🇪🇪🇸 EU (16)</div>
+            <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.8">
+              fr.mkt.root + pos + app + PTR<br>uk.mkt.root + pos + app + PTR<br>de.mkt.root + pos + app + PTR<br>es.mkt.root + pos + app + PTR
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px">Others (30)</div>
+            <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.8">
+              ca/au/ph/in/kr.mkt.root<br>pos + app per market<br>br/mx.mkt.root<br>pos + app per market<br>sa.mkt.root + pos + app<br>PTR zones per market<br>infra PTR blocks (6)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">ccTLD Zones — 36 zones (External DNS import · full record sets)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          <!-- EU -->
+          <span class="tag tag-ext">mcd.fr</span>
+          <span class="tag tag-ext">mcd.co.uk</span>
+          <span class="tag tag-ext">mcd.de</span>
+          <span class="tag tag-ext">mcd.es</span>
+          <span class="tag tag-ext">mcd.it</span>
+          <span class="tag tag-ext">mcd.pl</span>
+          <span class="tag tag-ext">mcd.nl</span>
+          <span class="tag tag-ext">mcd.be</span>
+          <span class="tag tag-ext">mcd.ch</span>
+          <span class="tag tag-ext">mcd.se</span>
+          <span class="tag tag-ext">mcd.no</span>
+          <span class="tag tag-ext">mcd.at</span>
+          <span class="tag tag-ext">mcd.pt</span>
+          <!-- APAC -->
+          <span class="tag tag-ext">mcd.com.au</span>
+          <span class="tag tag-ext">mcd.co.nz</span>
+          <span class="tag tag-ext">mcd.co.jp</span>
+          <span class="tag tag-ext">mcd.co.kr</span>
+          <span class="tag tag-ext">mcd.cn</span>
+          <span class="tag tag-ext">mcd.com.sg</span>
+          <span class="tag tag-ext">mcd.com.my</span>
+          <span class="tag tag-ext">mcd.com.ph</span>
+          <span class="tag tag-ext">mcd.co.th</span>
+          <span class="tag tag-ext">mcd.co.id</span>
+          <span class="tag tag-ext">mcd.co.in</span>
+          <span class="tag tag-ext">mcd.com.tw</span>
+          <!-- LATAM -->
+          <span class="tag tag-ext">mcd.com.br</span>
+          <span class="tag tag-ext">mcd.com.mx</span>
+          <span class="tag tag-ext">mcd.com.ar</span>
+          <span class="tag tag-ext">mcd.com.co</span>
+          <span class="tag tag-ext">mcd.com.cl</span>
+          <span class="tag tag-ext">mcd.com.pe</span>
+          <!-- MENA -->
+          <span class="tag tag-ext">mcd.com.sa</span>
+          <span class="tag tag-ext">mcd.ae</span>
+          <span class="tag tag-ext">mcd.com.eg</span>
+          <span class="tag tag-ext">mcd.com.kw</span>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted)">Each ccTLD zone contains: SOA · NS (2) · A (apex) · www CNAME · app A · order CNAME → CORP · menu CNAME → CORP CDN · pos CNAME → CORP regional POS · delivery A · loyalty A · api A · MX via CORP relay · SPF TXT · DMARC TXT · SRV (where applicable)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LEFT: Global apps -->
+  <div class="block block-rule">
+    <div class="block-header">
+      <span class="block-title">10 Global Applications (CORP)</span>
+    </div>
+    <div class="block-body">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">pos.corp.root</span>
+          <span style="flex:1">G-01 · POS-Connect — Restaurant POS integration broker</span>
+          <span class="tag tag-all">ANYCAST</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">order.corp.root</span>
+          <span style="flex:1">G-02 · McOrder-Global — Global order management platform</span>
+          <span class="tag tag-all">ANYCAST</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">iam.corp.root</span>
+          <span style="flex:1">G-03 · McIAM — Global identity &amp; access management</span>
+          <span class="tag tag-all">ANYCAST</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">menu.corp.root</span>
+          <span style="flex:1">G-04 · McMenu-CDN — Digital menu &amp; content distribution</span>
+          <span class="tag tag-a">CDN</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">mon.corp.root</span>
+          <span style="flex:1">G-05 · McMonitor — Global observability &amp; APM</span>
+          <span class="tag tag-a">A</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">vault.corp.root</span>
+          <span style="flex:1">G-06 · McVault — Secrets &amp; certificate management</span>
+          <span class="tag tag-srv">SRV</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">supply.corp.root</span>
+          <span style="flex:1">G-07 · McLogistics — Supply chain &amp; logistics API</span>
+          <span class="tag tag-srv">SRV</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">dns.corp.root</span>
+          <span style="flex:1">G-08 · McDNS-MGMT — BlueCat MDDS management &amp; API</span>
+          <span class="tag tag-a">A</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">bi.corp.root</span>
+          <span style="flex:1">G-09 · McAnalytics — Global BI, data warehouse &amp; reporting</span>
+          <span class="tag tag-a">A/CNAME</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span class="mono" style="color:var(--accent2);width:120px;font-size:10px">ntp.corp.root</span>
+          <span style="flex:1">G-10 · McNTP — Global NTP &amp; time synchronization</span>
+          <span class="tag tag-srv">SRV</span>
+        </div>
+      </div>
+      <hr style="margin:16px 0">
+      <div style="font-size:11px;color:var(--muted)">All 10 global apps have multi-region A records (NA/EU/APAC/LATAM/MENA) plus cross-zone CNAME delegation from all market zones. Market access via <span class="mono">mcd-&lt;app&gt;</span> CNAME chain.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Address allocation -->
+  <div class="block block-rule-amber">
+    <div class="block-header">
+      <span class="block-title">IP Address Space Allocation</span>
+    </div>
+    <div class="block-body">
+      <div class="addr-row">
+        <span class="addr-block">10.100.0.0/16</span>
+        <span class="addr-use">CORP Global — anycast VIPs, infra, NOC, NTP</span>
+        <span class="addr-market">CORP</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.100.100.100/32</span>
+        <span class="addr-use">Global Anycast VIP — all 6 Edge Resolvers advertise</span>
+        <span class="addr-market">CORP</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.100.100.102/32</span>
+        <span class="addr-use">ECS Regional Anycast VIP — geo-steering</span>
+        <span class="addr-market">CORP</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.100.100.99/32</span>
+        <span class="addr-use">Legacy MS AD DNS VIP — rollback target</span>
+        <span class="addr-market">LEGACY</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.10.0.0/16</span>
+        <span class="addr-use">USA market tenant</span>
+        <span class="addr-market">NA</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.11.0.0/16</span>
+        <span class="addr-use">Canada market tenant</span>
+        <span class="addr-market">NA</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.20–25.0.0/16</span>
+        <span class="addr-use">APAC markets (CN/JP/AU/PH/IN/KR)</span>
+        <span class="addr-market">APAC</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.30–33.0.0/16</span>
+        <span class="addr-use">EU markets (FR/UK/DE/ES)</span>
+        <span class="addr-market">EU</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.34–44.0.0/16</span>
+        <span class="addr-use">Ext EU markets (IT/PL/NL/BE/CH/SE/NO/AT/PT)</span>
+        <span class="addr-market">EU</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.40–41.0.0/16</span>
+        <span class="addr-use">LATAM markets (BR/MX)</span>
+        <span class="addr-market">LATAM</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.46–49.0.0/16</span>
+        <span class="addr-use">LATAM ext (AR/CO/CL/PE)</span>
+        <span class="addr-market">LATAM</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.50–53.0.0/16</span>
+        <span class="addr-use">MENA markets (SA/UAE/EG/KW)</span>
+        <span class="addr-market">MENA</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">10.200.0.0/16</span>
+        <span class="addr-use">POC / lab isolated address space</span>
+        <span class="addr-market">POC</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">192.168.0.0/24</span>
+        <span class="addr-use">Equinix Colo — MDDS, BGP routers</span>
+        <span class="addr-market">INFRA</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">192.168.10–30/24</span>
+        <span class="addr-use">Edge Resolver VMs (AWS/Azure/GCP)</span>
+        <span class="addr-market">INFRA</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">198.14.0.0/20</span>
+        <span class="addr-use">WAN global — CORP services, anycast edge</span>
+        <span class="addr-market">WAN</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">198.14.16–240/20</span>
+        <span class="addr-use">WAN per-market (by region, /20 blocks)</span>
+        <span class="addr-market">WAN</span>
+      </div>
+      <div class="addr-row">
+        <span class="addr-block">198.15.0.0/16</span>
+        <span class="addr-use">APAC WAN extension</span>
+        <span class="addr-market">WAN</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL: ccTLD architecture -->
+  <div class="block full block-rule-purple">
+    <div class="block-header">
+      <span class="block-title">ccTLD Subdomain Architecture — External DNS Import Model</span>
+      <span class="tag tag-ext">36 zones · external DNS</span>
+    </div>
+    <div class="block-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:12px">Standard Record Set per ccTLD Zone</div>
+          <div class="schema-box">
+<span class="schema-comment">; Example: mcd.co.uk (United Kingdom)</span>
+<br>
+<span class="schema-zone">mcd.co.uk.</span>    300  NS   <span class="schema-ip">edge-az-01.corp.root.</span>
+<span class="schema-zone">mcd.co.uk.</span>    300  NS   <span class="schema-ip">edge-az-02.corp.root.</span>
+<span class="schema-zone">mcd.co.uk.</span>    300  A    <span class="schema-ip">198.14.96.1</span>          <span class="schema-comment">; WAN IP</span>
+<span class="schema-zone">www</span>            300  CNAME <span class="schema-cname">mcd-app.uk.mkt.root.</span>
+<span class="schema-zone">app</span>            300  CNAME <span class="schema-cname">mcd-app.uk.mkt.root.</span>
+<span class="schema-zone">order</span>          300  CNAME <span class="schema-cname">order-api.order.corp.root.</span>
+<span class="schema-zone">menu</span>           300  CNAME <span class="schema-cname">menu-cdn.menu.corp.root.</span>
+<span class="schema-zone">pos</span>            300  CNAME <span class="schema-cname">pos-api-eu.pos.corp.root.</span>
+<span class="schema-zone">delivery</span>       300  A    <span class="schema-ip">10.31.0.50</span>
+<span class="schema-zone">loyalty</span>        300  A    <span class="schema-ip">10.31.0.50</span>
+<span class="schema-zone">api</span>            300  A    <span class="schema-ip">10.31.0.20</span>
+<span class="schema-zone">@</span>              300  MX   <span class="schema-type">10 mail-relay.corp.root.</span>
+<span class="schema-zone">@</span>              300  TXT  <span class="schema-type">"v=spf1 ip4:198.14.96.1/32 ..."</span>
+<span class="schema-zone">_dmarc</span>        300  TXT  <span class="schema-type">"v=DMARC1; p=reject; ..."</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:12px">Resolution Flow — ccTLD to CORP Global</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+            <div class="flow">
+              <div class="flow-node" style="font-size:9px">User Browser</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node tag-ext" style="font-size:9px;background:#ffe8f0;border-color:#f0b8d0;color:#9a0050">mcd.co.uk NS</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node flow-blue" style="font-size:9px">Edge Resolver<br>EU (Azure)</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node flow-corp" style="font-size:9px">MDDS Auth<br>corp.root</div>
+            </div>
+            <div class="flow">
+              <div class="flow-node" style="font-size:9px">www.mcd.co.uk</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node" style="font-size:9px">CNAME</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node flow-blue" style="font-size:9px">mcd-app.<br>uk.mkt.root</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node flow-green" style="font-size:9px">10.31.0.30</div>
+            </div>
+            <div class="flow">
+              <div class="flow-node" style="font-size:9px">order.mcd.co.uk</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node" style="font-size:9px">CNAME</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node flow-corp" style="font-size:9px">order-api.<br>order.corp.root</div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node flow-green" style="font-size:9px">10.100.100.100</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7">
+            <strong>NS delegation:</strong> All 36 ccTLD zones delegate NS to the BlueCat Edge Resolvers (<code>edge-az-01/02</code> for EU/MENA, <code>edge-gcp-01/02</code> for APAC/LATAM).<br>
+            <strong>Mail routing:</strong> All ccTLD MX records point to <code>mail-relay.corp.root</code> — centralized CORP relay.<br>
+            <strong>SPF/DMARC:</strong> Market-specific SPF includes the WAN IP /32 + <code>198.14.0.0/15</code> range. DMARC p=reject centralizes reporting to <code>dmarc@corp.root</code>.<br>
+            <strong>Market isolation:</strong> ccTLD CNAME chains pass through market zones then CORP — never cross between market tenants.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT: Market footprint -->
+  <div class="block block-rule-blue full">
+    <div class="block-header">
+      <span class="block-title">Market Footprint &amp; Zone Allocation (Top 15 + ext EU/APAC/LATAM/MENA)</span>
+    </div>
+    <div class="block-body">
+      <div class="mkt-grid">
+        <div class="mkt-card">
+          <div class="mkt-flag">🇺🇸</div>
+          <div class="mkt-name">United States</div>
+          <div class="mkt-detail">13,000 restaurants · 28.7%<br>17 internal zones<br>1 ccTLD (—)<br>10.10/11.0/16 · AWS primary<br>WAN: 198.14.16.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇨🇳</div>
+          <div class="mkt-name">China</div>
+          <div class="mkt-detail">4,300 restaurants · 9.5%<br>9 internal zones<br>1 ccTLD (mcd.cn)<br>10.20.0/16 · GCP primary<br>WAN: 198.14.32.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:33%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇯🇵</div>
+          <div class="mkt-name">Japan</div>
+          <div class="mkt-detail">2,600 restaurants · 5.7%<br>6 internal zones<br>1 ccTLD (mcd.co.jp)<br>10.21.0/16 · GCP primary<br>WAN: 198.14.48.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:20%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇫🇷</div>
+          <div class="mkt-name">France</div>
+          <div class="mkt-detail">1,555 restaurants · 3.4%<br>4 internal zones<br>1 ccTLD (mcd.fr)<br>10.30.0/16 · Azure primary<br>WAN: 198.14.64.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:12%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇨🇦</div>
+          <div class="mkt-name">Canada</div>
+          <div class="mkt-detail">1,450 restaurants · 3.2%<br>4 internal zones<br>no ccTLD<br>10.11.0/16 · AWS primary<br>WAN: 198.14.80.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:11%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇬🇧</div>
+          <div class="mkt-name">United Kingdom</div>
+          <div class="mkt-detail">1,420 restaurants · 3.1%<br>4 internal zones<br>1 ccTLD (mcd.co.uk)<br>10.31.0/16 · Azure primary<br>WAN: 198.14.96.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:10.9%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇩🇪</div>
+          <div class="mkt-name">Germany</div>
+          <div class="mkt-detail">1,400 restaurants · 3.1%<br>4 internal zones<br>1 ccTLD (mcd.de)<br>10.32.0/16 · Azure primary<br>WAN: 198.14.112.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:10.8%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇧🇷</div>
+          <div class="mkt-name">Brazil</div>
+          <div class="mkt-detail">1,100 restaurants · 2.4%<br>3 internal zones<br>1 ccTLD (mcd.com.br)<br>10.40.0/16 · GCP primary<br>WAN: 198.14.128.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:8.5%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇦🇺</div>
+          <div class="mkt-name">Australia</div>
+          <div class="mkt-detail">1,010 restaurants · 2.2%<br>3 internal zones<br>2 ccTLDs (com.au · co.nz)<br>10.22.0/16 · GCP primary<br>WAN: 198.14.144.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:7.8%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇵🇭</div>
+          <div class="mkt-name">Philippines</div>
+          <div class="mkt-detail">780 restaurants · 1.7%<br>3 internal zones<br>1 ccTLD (mcd.com.ph)<br>10.23.0/16 · GCP primary<br>WAN: 198.14.160.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:6%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇸🇦</div>
+          <div class="mkt-name">Saudi Arabia</div>
+          <div class="mkt-detail">700 restaurants · 1.5%<br>3 internal zones<br>1 ccTLD (mcd.com.sa)<br>10.50.0/16 · Azure primary<br>WAN: 198.14.176.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:5.4%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇮🇳</div>
+          <div class="mkt-name">India</div>
+          <div class="mkt-detail">650 restaurants · 1.4%<br>3 internal zones<br>1 ccTLD (mcd.co.in)<br>10.24.0/16 · GCP primary<br>WAN: 198.14.192.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:5%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇪🇸</div>
+          <div class="mkt-name">Spain</div>
+          <div class="mkt-detail">610 restaurants · 1.3%<br>3 internal zones<br>1 ccTLD (mcd.es)<br>10.33.0/16 · Azure primary<br>WAN: 198.14.208.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:4.7%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇲🇽</div>
+          <div class="mkt-name">Mexico</div>
+          <div class="mkt-detail">570 restaurants · 1.3%<br>3 internal zones<br>1 ccTLD (mcd.com.mx)<br>10.41.0/16 · GCP primary<br>WAN: 198.14.224.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:4.4%"></div></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-flag">🇰🇷</div>
+          <div class="mkt-name">South Korea</div>
+          <div class="mkt-detail">430 restaurants · 0.9%<br>3 internal zones<br>1 ccTLD (mcd.co.kr)<br>10.25.0/16 · GCP primary<br>WAN: 198.14.240.0/20</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:3.3%"></div></div>
+        </div>
+        <div class="mkt-card" style="border-style:dashed">
+          <div class="mkt-flag" style="font-size:14px">🇮🇹🇵🇱🇳🇱🇧🇪🇨🇭🇸🇪🇳🇴🇦🇹🇵🇹</div>
+          <div class="mkt-name">EU Extended Markets</div>
+          <div class="mkt-detail">9 ccTLD zones only<br>(IT/PL/NL/BE/CH/SE/NO/AT/PT)<br>Azure primary<br>10.34–44.0/16 blocks</div>
+          <div class="mkt-bar"><div class="mkt-bar-fill" style="width:15%;background:var(--purple)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL: CSV column schema -->
+  <div class="block full block-rule-amber">
+    <div class="block-header">
+      <span class="block-title">CSV Column Schema &amp; Import Instructions</span>
+      <span class="mono" style="font-size:10px;color:var(--muted)">QSR_Global_DNS_Records_v1_1.csv</span>
+    </div>
+    <div class="block-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:10px">Column Definitions</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="addr-row">
+              <span class="addr-block">Zone</span>
+              <span class="addr-use">Authoritative zone name (e.g., <span class="mono">us.mkt.root</span>, <span class="mono">mcd.co.uk</span>)</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">Name</span>
+              <span class="addr-use">Relative owner name within zone. <span class="mono">@</span> = zone apex</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">TTL</span>
+              <span class="addr-use">Time-to-live in seconds. 60 = anycast/POS, 300 = stable, 10 = cache-flush test</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">Type</span>
+              <span class="addr-use">Record type: A · AAAA · CNAME · MX · NS · PTR · SOA · SRV · TXT</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">RData</span>
+              <span class="addr-use">Record data in standard presentation format (RFC 1035)</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">Entity</span>
+              <span class="addr-use">CORP-GLOBAL · CORP-REGIONAL · CORP-INFRA · CORP-POC · MARKET-NA/EU/APAC/LATAM/MENA</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">Market</span>
+              <span class="addr-use">Country/market name or "Global" for CORP records</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">Region</span>
+              <span class="addr-use">NA · EU · APAC · LATAM · MENA · Global</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">CloudPrimary</span>
+              <span class="addr-use">AWS · Azure · GCP · All (multi-cloud) · INFRA</span>
+            </div>
+            <div class="addr-row">
+              <span class="addr-block">Note</span>
+              <span class="addr-use">Human-readable description. Test case references (TC-xx) for POC zone records</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:10px">Target Platform Import Notes</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;line-height:1.6">
+            <div>
+              <span class="tag tag-corp" style="margin-right:6px">BlueCat Micetro</span>
+              Filter on <span class="mono">Zone</span> column. Import via Micetro CSV import wizard. Use <span class="mono">Entity</span> to assign RBAC views. SOA records configure zone properties separately.
+            </div>
+            <div>
+              <span class="tag tag-aws" style="margin-right:6px">AWS Route 53</span>
+              Filter to ccTLD zones (e.g., <span class="mono">mcd.com.au</span>). Create hosted zone, then import as record set. Map <span class="mono">Name+.+Zone</span> for FQDN. Exclude SOA/NS (Route 53 manages these).
+            </div>
+            <div>
+              <span class="tag tag-azure" style="margin-right:6px">Azure DNS</span>
+              Use <span class="mono">az network dns record-set</span> CLI or Azure DNS import tool. Filter by <span class="mono">Region=EU</span> and ccTLD zone names. Azure manages SOA/NS automatically.
+            </div>
+            <div>
+              <span class="tag tag-gcp" style="margin-right:6px">Google Cloud DNS</span>
+              Convert to BIND zone file format using <span class="mono">gcloud dns record-sets import</span>. Filter APAC ccTLD zones. Exclude SOA/NS from import file (GCP manages these).
+            </div>
+            <div>
+              <span class="tag tag-region" style="margin-right:6px">BIND / RFC 1035</span>
+              Direct zone file generation possible: sort by <span class="mono">Zone</span>, write <span class="mono">$ORIGIN</span> header, emit each row as <span class="mono">Name TTL IN Type RData</span>. SOA must be first record per zone.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ─────────────────── FOOTER ─────────────────── -->
+<div class="footer">
+  <span>QSR Global DNS Dataset Summary · v1.1 · GTIO BlueCat MDDS + Edge Resolver POC · May 10 2026</span>
+  <span>Data file: QSR_Global_DNS_Records_v1_1.csv · 1,894 records · 132 zones · 36 ccTLD zones</span>
+  <span>CONFIDENTIAL — GTIO Internal Use Only</span>
+</div>
+
+</body>
+</html>

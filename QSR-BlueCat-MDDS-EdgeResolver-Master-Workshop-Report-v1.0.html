@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QSR Global DNS POC — BlueCat MDDS + Edge Resolver Master Workshop Report v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+  --bg: #0a0d14;
+  --surface: #111520;
+  --surface2: #161b28;
+  --border: #1e2738;
+  --border2: #252f45;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --dim: #8fa0bb;
+  --blue: #3b82f6;
+  --blue-light: #60a5fa;
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --orange: #f97316;
+  --red: #ef4444;
+  --purple: #a78bfa;
+  --pink: #ec4899;
+  --accent: #00d4ff;
+  --accent2: #00ff99;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.6;
+}
+/* ── PRINT ── */
+@media print{
+  body{background:#fff;color:#111;font-size:10pt}
+  .no-print,.sidebar-toc,.tab-nav{display:none!important}
+  .tab-panel{display:block!important;page-break-before:always}
+  section{page-break-inside:avoid}
+  pre,code{white-space:pre-wrap;font-size:8pt}
+  th,td{border:1px solid #ccc!important;font-size:8pt}
+  .badge,.tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+/* ── HEADER ── */
+.master-header{
+  background:linear-gradient(135deg,#0c1929 0%,#091522 40%,#060e1a 100%);
+  border-bottom:1px solid var(--border);
+  padding:48px 60px 40px;
+  position:relative;
+  overflow:hidden;
+}
+.master-header::before{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(0,212,255,.07) 0%,transparent 70%),
+             radial-gradient(ellipse 60% 80% at 80% 20%,rgba(59,130,246,.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+.master-header::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+}
+.header-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:16px}
+.header-title{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;line-height:1.1;color:#fff;margin-bottom:10px}
+.header-title span{color:var(--accent)}
+.header-sub{font-size:15px;color:var(--dim);max-width:760px;line-height:1.6;margin-bottom:28px}
+.header-badges{display:flex;flex-wrap:wrap;gap:10px}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:4px;font-size:11px;font-weight:500;
+  font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;
+}
+.badge-blue{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
+.badge-cyan{background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25)}
+.badge-green{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.25)}
+.badge-amber{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.25)}
+.badge-purple{background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.25)}
+.badge-red{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 180px)}
+.sidebar-toc{
+  width:240px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:28px 0;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.toc-section-label{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.15em;padding:18px 20px 6px;
+}
+.toc-link{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 20px;font-size:12px;color:var(--dim);
+  text-decoration:none;border-left:2px solid transparent;
+  transition:all .15s;cursor:pointer;
+}
+.toc-link:hover,.toc-link.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,212,255,.05)}
+.toc-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+.main-content{flex:1;overflow-x:hidden;padding:40px 60px}
+
+/* ── TAB NAV ── */
+.tab-nav{display:flex;gap:4px;margin-bottom:36px;border-bottom:1px solid var(--border);padding-bottom:0;flex-wrap:wrap}
+.tab-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 20px;font-size:12px;font-weight:500;
+  font-family:'IBM Plex Mono',monospace;
+  color:var(--muted);background:none;border:none;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.08em;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:52px}
+.section-header{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:700;
+  color:#fff;margin-bottom:20px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.section-header i{color:var(--accent)}
+.subsection{margin-bottom:32px}
+.subsection-title{
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:600;
+  color:var(--blue-light);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.step-label{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);
+  letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;
+}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto;margin-bottom:24px}
+table{width:100%;border-collapse:collapse}
+th{
+  background:var(--surface2);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--dim);text-transform:uppercase;letter-spacing:.1em;
+  padding:10px 14px;border-bottom:1px solid var(--border2);
+  text-align:left;font-weight:600;white-space:nowrap;
+}
+td{
+  padding:9px 14px;border-bottom:1px solid var(--border);
+  font-size:13px;color:var(--text);vertical-align:top;
+}
+tr:hover td{background:rgba(255,255,255,.02)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent)}
+.mono-dim{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+
+/* ── CODE BLOCKS ── */
+pre{
+  background:#060a14;border:1px solid var(--border2);border-radius:6px;
+  padding:18px 20px;overflow-x:auto;margin:12px 0;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;color:#a8d8ff;
+}
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7dd3fc}
+.code-comment{color:#4a6470}
+.code-key{color:#86efac}
+.code-val{color:#fde68a}
+.code-cmd{color:#c4b5fd}
+
+/* ── CALLOUT BOXES ── */
+.callout{
+  border-radius:6px;padding:16px 20px;margin:16px 0;
+  border-left:3px solid;font-size:13px;
+}
+.callout-info{background:rgba(59,130,246,.08);border-color:var(--blue);color:#bfdbfe}
+.callout-success{background:rgba(16,185,129,.08);border-color:var(--green);color:#a7f3d0}
+.callout-warn{background:rgba(245,158,11,.08);border-color:var(--amber);color:#fde68a}
+.callout-danger{background:rgba(239,68,68,.08);border-color:var(--red);color:#fca5a5}
+.callout-title{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;font-weight:600}
+
+/* ── STEP CARDS ── */
+.step-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:20px}
+.step-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:18px;transition:border-color .15s;
+}
+.step-card:hover{border-color:var(--border2)}
+.step-num{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--accent);margin-bottom:8px;
+}
+.step-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:#fff;margin-bottom:6px}
+.step-body{font-size:12px;color:var(--dim);line-height:1.6}
+
+/* ── SCENARIO CARDS ── */
+.scenario-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  margin-bottom:16px;overflow:hidden;
+}
+.scenario-header{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border);
+}
+.scenario-num{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--accent);background:rgba(0,212,255,.1);
+  border:1px solid rgba(0,212,255,.2);border-radius:3px;
+  padding:2px 8px;
+}
+.scenario-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;color:#fff}
+.scenario-body{padding:16px 18px}
+.scenario-body p{font-size:13px;color:var(--dim);margin-bottom:10px}
+.check-list{list-style:none;padding:0}
+.check-list li{
+  display:flex;align-items:flex-start;gap:8px;
+  font-size:12px;color:var(--dim);padding:4px 0;
+  border-bottom:1px solid rgba(255,255,255,.03);
+}
+.check-list li::before{content:'›';color:var(--accent);font-weight:700;flex-shrink:0;margin-top:1px}
+.check-list li:last-child{border-bottom:none}
+
+/* ── TEAM CARDS ── */
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.team-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:20px;
+}
+.team-card-header{
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--border);
+}
+.team-icon{
+  width:36px;height:36px;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+}
+.team-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff}
+.team-role{font-size:11px;color:var(--muted)}
+.team-tasks{list-style:none;padding:0}
+.team-tasks li{font-size:12px;color:var(--dim);padding:3px 0;display:flex;gap:6px;align-items:flex-start}
+.team-tasks li::before{content:'─';color:var(--muted);flex-shrink:0}
+
+/* ── WORKSHOP SESSIONS ── */
+.ws-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  margin-bottom:16px;
+}
+.ws-header{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 18px;background:var(--surface2);border-bottom:1px solid var(--border);
+}
+.ws-tag{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  padding:2px 8px;border-radius:3px;font-weight:600;
+}
+.ws-tag-blue{background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.ws-tag-cyan{background:rgba(6,182,212,.2);color:#67e8f9;border:1px solid rgba(6,182,212,.3)}
+.ws-tag-green{background:rgba(16,185,129,.2);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}
+.ws-tag-amber{background:rgba(245,158,11,.2);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+.ws-tag-purple{background:rgba(167,139,250,.2);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)}
+.ws-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:#fff}
+.ws-body{padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ws-col-title{font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.ws-items{list-style:none;padding:0}
+.ws-items li{font-size:12px;color:var(--dim);padding:3px 0;display:flex;gap:6px;align-items:flex-start}
+.ws-items li::before{content:'·';color:var(--accent);font-weight:700}
+
+/* ── VIP TABLE HIGHLIGHT ── */
+.vip-global{color:var(--green);font-weight:600}
+.vip-regional{color:var(--cyan);font-weight:600}
+.vip-none{color:var(--muted)}
+
+/* ── STATUS PILLS ── */
+.pill{
+  display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;
+  font-family:'IBM Plex Mono',monospace;font-weight:600;
+}
+.pill-blue{background:rgba(59,130,246,.15);color:#93c5fd}
+.pill-green{background:rgba(16,185,129,.15);color:#6ee7b7}
+.pill-amber{background:rgba(245,158,11,.15);color:#fcd34d}
+.pill-red{background:rgba(239,68,68,.15);color:#fca5a5}
+.pill-cyan{background:rgba(6,182,212,.15);color:#67e8f9}
+.pill-purple{background:rgba(167,139,250,.15);color:#c4b5fd}
+
+/* ── PRINT BTN ── */
+.print-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 60px;background:var(--surface);
+  border-bottom:1px solid var(--border);font-size:12px;color:var(--dim);
+}
+.print-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 16px;background:rgba(0,212,255,.1);
+  border:1px solid rgba(0,212,255,.25);border-radius:4px;
+  color:var(--accent);font-family:'IBM Plex Mono',monospace;
+  font-size:11px;cursor:pointer;transition:all .15s;
+}
+.print-btn:hover{background:rgba(0,212,255,.18)}
+
+hr.sec{border:none;border-top:1px solid var(--border);margin:28px 0}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="master-header">
+  <div class="header-eyebrow"><i class="fa-solid fa-circle-nodes"></i> &nbsp;QSR RESTAURANT CO. — GLOBAL TECHNOLOGY INFRASTRUCTURE OPERATIONS</div>
+  <h1 class="header-title">BlueCat MDDS + Edge Resolver<br><span>Master Workshop Report</span></h1>
+  <p class="header-sub">Combined implementation guide, BGP test scenario playbook, per-environment server inventory, and team-specific workshop materials for the Global Multi-Cloud Anycast DNS POC. Covers Azure East US 2 · AWS us-east-2 · GCP us-east4 · Equinix Fabric backbone. Serves 48,000 restaurants across NA, Europe, Asia, and Latin America.</p>
+  <div class="header-badges">
+    <span class="badge badge-cyan"><i class="fa-solid fa-dna"></i> BlueCat MDDS + Edge Resolver v4</span>
+    <span class="badge badge-blue"><i class="fa-brands fa-microsoft"></i> Azure East US 2</span>
+    <span class="badge badge-amber"><i class="fa-brands fa-aws"></i> AWS us-east-2</span>
+    <span class="badge badge-red"><i class="fa-brands fa-google"></i> GCP us-east4</span>
+    <span class="badge badge-green"><i class="fa-solid fa-network-wired"></i> Equinix Fabric · ASN 64512 / 65000</span>
+    <span class="badge badge-purple"><i class="fa-solid fa-file-code"></i> v1.0 · POC</span>
+  </div>
+</header>
+
+<!-- PRINT BAR -->
+<div class="print-bar no-print">
+  <span>Global Technology Infrastructure Operations &nbsp;·&nbsp; QSR Restaurant Company &nbsp;·&nbsp; Blueprint v1.0</span>
+  <div style="display:flex;gap:10px">
+    <button class="print-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR TOC -->
+  <aside class="sidebar-toc no-print">
+    <div class="toc-section-label">Navigation</div>
+    <a class="toc-link active" onclick="showTab('overview')"><span class="toc-dot"></span>Overview & Architecture</a>
+    <a class="toc-link" onclick="showTab('inventory')"><span class="toc-dot"></span>Server Inventory</a>
+    <a class="toc-link" onclick="showTab('impl')"><span class="toc-dot"></span>Implementation Steps</a>
+    <a class="toc-link" onclick="showTab('bgp')"><span class="toc-dot"></span>BGP Test Scenarios</a>
+    <a class="toc-link" onclick="showTab('workshop')"><span class="toc-dot"></span>Workshop Materials</a>
+    <div class="toc-section-label">Workshop Teams</div>
+    <a class="toc-link" onclick="showTab('workshop');scrollTo('ws-ip')"><span class="toc-dot"></span>EfficientIP Team</a>
+    <a class="toc-link" onclick="showTab('workshop');scrollTo('ws-bc')"><span class="toc-dot"></span>BlueCat Team</a>
+    <a class="toc-link" onclick="showTab('workshop');scrollTo('ws-net')"><span class="toc-dot"></span>Network Team</a>
+    <div class="toc-section-label">Quick Ref</div>
+    <a class="toc-link" onclick="showTab('bgp');scrollTo('bgp-quick')"><span class="toc-dot"></span>BGP Quick Ref</a>
+    <a class="toc-link" onclick="showTab('impl');scrollTo('frr-config')"><span class="toc-dot"></span>FRR Config Templates</a>
+    <a class="toc-link" onclick="showTab('impl');scrollTo('health-checks')"><span class="toc-dot"></span>Health Check Scripts</a>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- TAB: OVERVIEW -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="tab-overview">
+
+      <section class="section">
+        <h2 class="section-header"><i class="fa-solid fa-map"></i> Architecture Overview</h2>
+        <p style="color:var(--dim);font-size:13px;margin-bottom:20px;max-width:820px">
+          This POC validates BlueCat MDDS as a Tier 0 hidden primary master hosted in Equinix, paired with BlueCat Edge Resolver Service Point v4 HA pairs deployed across all three cloud providers. All Edge Resolvers advertise a shared Anycast VIP via FRR/BGP over the Equinix Fabric IP-WAN, enabling nearest-server routing for 48,000+ restaurants globally. CORP and Market entities remain strictly isolated per architecture policy.
+        </p>
+
+        <!-- Three-tier description -->
+        <div class="step-grid">
+          <div class="step-card">
+            <div class="step-num">TIER 0 — HIDDEN MASTER</div>
+            <div class="step-title">BlueCat MDDS · Equinix Colo</div>
+            <div class="step-body">Single MDDS instance hosted in the Equinix facility serving as the authoritative hidden primary for all CORP zones (<code>corp.pri</code>, <code>mcd.cloud</code>, reverse zones). Never directly reachable by clients. TSIG-secured zone transfers to all Tier 1+2 Edge Resolvers. Managed via Micetro Central.</div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">TIER 1+2 — EDGE RESOLVERS</div>
+            <div class="step-title">BlueCat Edge v4 · HA Pairs per Cloud</div>
+            <div class="step-body">Two Edge Resolver VMs per cloud (Azure, AWS, GCP) combine authoritative and recursive resolution in a single appliance. Each VM holds a secondary IP configured as the Anycast VIP (<code>10.100.100.100/32</code>), advertised via FRR/BGP to the Equinix Fabric Cloud Router. Anycast ensures closest-node routing globally.</div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">CONTROL PLANE</div>
+            <div class="step-title">Micetro Central + Equinix Fabric BGP</div>
+            <div class="step-body">Micetro Central (DDI orchestration) manages all servers centrally with LDAP/AD-integrated RBAC. Equinix Fabric Cloud Router (ASN 65000) peers with all six Edge VMs (local ASN 64512). BGP health-based withdrawal removes unhealthy nodes from routing automatically within ≤5s convergence.</div>
+          </div>
+        </div>
+
+        <!-- VIP Table -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-crosshairs"></i> Anycast VIP Reference</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Service</th><th>Anycast VIP</th><th>Purpose</th><th>BGP Communities</th><th>All Advertisers</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="pill pill-green">GLOBAL-DNS</span></td>
+                  <td class="mono vip-global">10.100.100.100/32</td>
+                  <td style="color:var(--dim)">Primary global anycast resolver — all markets, all clouds, equal-cost routing</td>
+                  <td class="mono-dim">64512:100</td>
+                  <td style="color:var(--dim);font-size:11px">edge-az-01/02 · edge-aws-01/02 · edge-gcp-01/02</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-cyan">REGIONAL-ECS</span></td>
+                  <td class="mono vip-regional">10.100.100.102/32</td>
+                  <td style="color:var(--dim)">EDNS Client Subnet geo-steering VIP — regional affinity for Market tenants</td>
+                  <td class="mono-dim">64512:102</td>
+                  <td style="color:var(--dim);font-size:11px">edge-az-01/02 · edge-aws-01/02 · edge-gcp-01/02</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-amber">CORP-MGMT</span></td>
+                  <td class="mono" style="color:var(--amber)">192.168.0.30</td>
+                  <td style="color:var(--dim)">MDDS Hidden Master management — Equinix only, not advertised to clients</td>
+                  <td class="mono-dim">N/A</td>
+                  <td class="vip-none">Equinix management only</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CORP vs Market -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-building-columns"></i> CORP / Market Entity Model</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr><th>Entity Type</th><th>Scope</th><th>DNS Zones</th><th>Isolation Rule</th><th>Global Services Dependency</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="pill pill-blue">CORP Global</span></td>
+                  <td style="color:var(--dim)">All regions, all clouds</td>
+                  <td class="mono-dim">corp.pri · mcd.cloud · reverse</td>
+                  <td style="color:var(--green)">Accessible by all</td>
+                  <td style="color:var(--dim)">Self-hosted in Equinix + 3 clouds</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-blue">CORP Regional</span></td>
+                  <td style="color:var(--dim)">NA / EMEA / APAC / LATAM</td>
+                  <td class="mono-dim">na.corp.pri · eu.corp.pri · apac.corp.pri</td>
+                  <td style="color:var(--green)">Accessible by all</td>
+                  <td style="color:var(--dim)">Routes via Equinix Fabric WAN</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-purple">Market (per-country)</span></td>
+                  <td style="color:var(--dim)">Per market (e.g., US, DE, JP)</td>
+                  <td class="mono-dim">us.mkt.pri · de.mkt.pri · jp.mkt.pri</td>
+                  <td style="color:var(--red)">Cannot connect to other markets</td>
+                  <td style="color:var(--dim)">Depend on CORP Global services via anycast</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-warn">
+            <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> Market Tenant Isolation</div>
+            Market tenants are peered to Equinix Fabric for CORP global service access only. BGP communities and prefix-lists enforce strict separation. Market-to-market routing is architecturally prohibited and must be validated in BGP Scenario 10 (prefix filtering).
+          </div>
+        </div>
+      </section>
+    </div><!-- /tab-overview -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- TAB: SERVER INVENTORY -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-inventory">
+
+      <section class="section">
+        <h2 class="section-header"><i class="fa-solid fa-server"></i> BlueCat Server Inventory — All Environments</h2>
+        <p style="color:var(--dim);font-size:13px;margin-bottom:20px">All BlueCat MDDS and Edge Resolver servers across all cloud environments. Hostnames follow the convention <code>edge-bc-[cloud]-[region]-[nn].corp.pri</code>. The Anycast VIP <code>10.100.100.100/32</code> is assigned as a secondary IP (AWS ENI / Azure NIC / GCP alias IP) on every Edge Resolver.</p>
+
+        <!-- TIER 0 -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-crown"></i> Tier 0 — MDDS Hidden Primary Masters (Equinix)</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Hostname (FQDN)</th><th>Location</th><th>Primary IP</th><th>Subnet</th><th>Role</th><th>Platform</th><th>Micetro Role</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono">mdds-bc-eqx-nyc-01.corp.pri</td>
+                  <td style="color:var(--dim)">Equinix NY4 / NY5 (Primary)</td>
+                  <td class="mono">192.168.0.30</td>
+                  <td class="mono-dim">192.168.0.0/24</td>
+                  <td><span class="pill pill-cyan">MDDS Hidden Primary</span></td>
+                  <td style="color:var(--dim)">BlueCat MDDS · 8 vCPU / 32 GiB</td>
+                  <td style="color:var(--dim)">Primary Authoritative — all CORP zones</td>
+                </tr>
+                <tr>
+                  <td class="mono">mdds-bc-eqx-dc-02.corp.pri</td>
+                  <td style="color:var(--dim)">Equinix DC2 (DR)</td>
+                  <td class="mono">192.168.0.31</td>
+                  <td class="mono-dim">192.168.0.0/24</td>
+                  <td><span class="pill pill-amber">MDDS Hidden DR</span></td>
+                  <td style="color:var(--dim)">BlueCat MDDS · 8 vCPU / 32 GiB</td>
+                  <td style="color:var(--dim)">Hot-standby, TSIG peer with primary</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TIER 1+2 AZURE -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-brands fa-microsoft" style="color:var(--blue)"></i> Tier 1+2 — Azure East US 2 Edge Resolvers</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Hostname (FQDN)</th><th>AZ / Zone</th><th>Primary IP</th><th>Anycast VIP</th><th>Subnet</th><th>BGP Peer</th><th>VM SKU</th><th>Role</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono">edge-bc-az-eus2-01.corp.pri</td>
+                  <td><span class="pill pill-blue">Zone 1</span></td>
+                  <td class="mono">192.168.16.20</td>
+                  <td class="mono vip-global">10.100.100.100</td>
+                  <td class="mono-dim">192.168.16.0/24</td>
+                  <td class="mono-dim">Azure Route Server · ASN 65515</td>
+                  <td style="color:var(--dim)">Standard_D4s_v5</td>
+                  <td><span class="pill pill-green">Auth + Recursive</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">edge-bc-az-eus2-02.corp.pri</td>
+                  <td><span class="pill pill-blue">Zone 2</span></td>
+                  <td class="mono">192.168.16.21</td>
+                  <td class="mono vip-global">10.100.100.100</td>
+                  <td class="mono-dim">192.168.16.0/24</td>
+                  <td class="mono-dim">Azure Route Server · ASN 65515</td>
+                  <td style="color:var(--dim)">Standard_D4s_v5</td>
+                  <td><span class="pill pill-green">Auth + Recursive</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-info">
+            <div class="callout-title">Azure-Specific Notes</div>
+            Secondary IP <code>10.100.100.100</code> must be added to each VM NIC via Azure Portal or Terraform (<code>azurerm_network_interface</code> ip_configurations block). Azure Route Server (ASN 65515) in the hub VNet is the BGP peer. NSG rules: allow UDP/TCP 53, TCP 179, TCP 22. Azure does not support loopback interfaces; use the NIC secondary IP method.
+          </div>
+        </div>
+
+        <!-- TIER 1+2 AWS -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-brands fa-aws" style="color:var(--orange)"></i> Tier 1+2 — AWS us-east-2 Edge Resolvers</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Hostname (FQDN)</th><th>AZ</th><th>Primary IP</th><th>Anycast VIP</th><th>Subnet</th><th>BGP Peer</th><th>Instance Type</th><th>Role</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono">edge-bc-aws-use2-01.corp.pri</td>
+                  <td><span class="pill pill-amber">us-east-2a</span></td>
+                  <td class="mono">192.168.20.20</td>
+                  <td class="mono vip-global">10.100.100.100</td>
+                  <td class="mono-dim">192.168.20.0/24</td>
+                  <td class="mono-dim">TGW · ASN 64512</td>
+                  <td style="color:var(--dim)">t3.large</td>
+                  <td><span class="pill pill-green">Auth + Recursive</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">edge-bc-aws-use2-02.corp.pri</td>
+                  <td><span class="pill pill-amber">us-east-2b</span></td>
+                  <td class="mono">192.168.20.21</td>
+                  <td class="mono vip-global">10.100.100.100</td>
+                  <td class="mono-dim">192.168.20.0/24</td>
+                  <td class="mono-dim">TGW · ASN 64512</td>
+                  <td style="color:var(--dim)">t3.large</td>
+                  <td><span class="pill pill-green">Auth + Recursive</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-info">
+            <div class="callout-title">AWS-Specific Notes</div>
+            Assign secondary private IP <code>10.100.100.100</code> to each ENI via <code>aws ec2 assign-private-ip-addresses</code> or Terraform <code>aws_network_interface</code>. Attach TGW (Transit Gateway, ASN 64512) and configure Security Group: UDP/TCP 53, TCP 179, TCP 22. SSH key retrieved from AWS Secrets Manager via cloud-init/user_data. BGP neighbor is the TGW BGP endpoint IP.
+          </div>
+        </div>
+
+        <!-- TIER 1+2 GCP -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-brands fa-google" style="color:var(--red)"></i> Tier 1+2 — GCP us-east4 Edge Resolvers</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Hostname (FQDN)</th><th>Zone</th><th>Primary IP</th><th>Anycast VIP (Alias IP)</th><th>Subnet</th><th>BGP Peer</th><th>Machine Type</th><th>Role</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono">edge-bc-gcp-use4-01.corp.pri</td>
+                  <td><span class="pill pill-red">us-east4-a</span></td>
+                  <td class="mono">192.168.30.20</td>
+                  <td class="mono vip-global">10.100.100.100/32</td>
+                  <td class="mono-dim">192.168.30.0/24</td>
+                  <td class="mono-dim">Cloud Router · ASN 16550</td>
+                  <td style="color:var(--dim)">e2-standard-4</td>
+                  <td><span class="pill pill-green">Auth + Recursive</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">edge-bc-gcp-use4-02.corp.pri</td>
+                  <td><span class="pill pill-red">us-east4-b</span></td>
+                  <td class="mono">192.168.30.21</td>
+                  <td class="mono vip-global">10.100.100.100/32</td>
+                  <td class="mono-dim">192.168.30.0/24</td>
+                  <td class="mono-dim">Cloud Router · ASN 16550</td>
+                  <td style="color:var(--dim)">e2-standard-4</td>
+                  <td><span class="pill pill-green">Auth + Recursive</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-info">
+            <div class="callout-title">GCP-Specific Notes</div>
+            Configure <code>aliasIpRanges: [{ipCidrRange: "10.100.100.100/32"}]</code> on the network interface via Terraform <code>google_compute_instance</code>. Cloud Router (ASN 16550) is created per region. Firewall rules: allow UDP/TCP 53, TCP 179, TCP 22. SSH key stored in Secret Manager, accessed via Service Account with <code>roles/secretmanager.secretAccessor</code>.
+          </div>
+        </div>
+
+        <!-- UTILITY / SUPPORTING -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-tools"></i> Supporting / Utility Servers</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Hostname (FQDN)</th><th>Cloud</th><th>Primary IP</th><th>Subnet</th><th>Role</th><th>Platform</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono">micetro-bc-eqx-01.corp.pri</td>
+                  <td style="color:var(--dim)">Equinix</td>
+                  <td class="mono">192.168.0.50</td>
+                  <td class="mono-dim">192.168.0.0/24</td>
+                  <td><span class="pill pill-cyan">Micetro Central</span></td>
+                  <td style="color:var(--dim)">Windows Server 2022 · 8 vCPU / 32 GiB</td>
+                </tr>
+                <tr>
+                  <td class="mono">mon-bc-az-eus2-01.corp.pri</td>
+                  <td><span class="pill pill-blue" style="font-size:10px">Azure</span></td>
+                  <td class="mono">192.168.16.60</td>
+                  <td class="mono-dim">192.168.16.0/24</td>
+                  <td><span class="pill pill-purple">Monitoring / Prometheus</span></td>
+                  <td style="color:var(--dim)">Ubuntu 22.04 · Standard_D2s_v5</td>
+                </tr>
+                <tr>
+                  <td class="mono">jump-bc-az-eus2-01.corp.pri</td>
+                  <td><span class="pill pill-blue" style="font-size:10px">Azure</span></td>
+                  <td class="mono">192.168.16.61</td>
+                  <td class="mono-dim">192.168.16.0/24</td>
+                  <td><span class="pill pill-amber">Jump / Bastion Host</span></td>
+                  <td style="color:var(--dim)">Ubuntu 22.04 · Standard_B2s</td>
+                </tr>
+                <tr>
+                  <td class="mono">dc-corp-az-eus2-01.corp.pri</td>
+                  <td><span class="pill pill-blue" style="font-size:10px">Azure</span></td>
+                  <td class="mono">192.168.16.50</td>
+                  <td class="mono-dim">192.168.16.0/24</td>
+                  <td><span class="pill pill-green">AD DC (corp.pri forest root)</span></td>
+                  <td style="color:var(--dim)">Windows Server 2022 · Standard_D4s_v5</td>
+                </tr>
+                <tr>
+                  <td class="mono">dc-na-mkt-az-eus2-01.mkt.pri</td>
+                  <td><span class="pill pill-blue" style="font-size:10px">Azure</span></td>
+                  <td class="mono">192.168.16.51</td>
+                  <td class="mono-dim">192.168.16.0/24</td>
+                  <td><span class="pill pill-purple">AD DC (NA Market child domain)</span></td>
+                  <td style="color:var(--dim)">Windows Server 2022 · Standard_D4s_v5</td>
+                </tr>
+                <tr>
+                  <td class="mono">dc-corp-aws-use2-01.corp.pri</td>
+                  <td><span class="pill pill-amber" style="font-size:10px">AWS</span></td>
+                  <td class="mono">192.168.20.50</td>
+                  <td class="mono-dim">192.168.20.0/24</td>
+                  <td><span class="pill pill-green">AD DC (corp.pri child)</span></td>
+                  <td style="color:var(--dim)">Windows Server 2022 · t3.large</td>
+                </tr>
+                <tr>
+                  <td class="mono">dc-corp-gcp-use4-01.corp.pri</td>
+                  <td><span class="pill pill-red" style="font-size:10px">GCP</span></td>
+                  <td class="mono">192.168.30.50</td>
+                  <td class="mono-dim">192.168.30.0/24</td>
+                  <td><span class="pill pill-green">AD DC (corp.pri child)</span></td>
+                  <td style="color:var(--dim)">Windows Server 2022 · n2-standard-4</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /tab-inventory -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- TAB: IMPLEMENTATION -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-impl">
+
+      <section class="section">
+        <h2 class="section-header"><i class="fa-solid fa-rocket"></i> Implementation Steps — Sequential Execution Order</h2>
+
+        <div class="callout callout-warn">
+          <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> Execution Order</div>
+          Complete all steps in order. BGP peers must be established (Established state) before network team advertises routes to Equinix. Do not advertise VIPs until all six Edge Resolvers report healthy in Micetro Central.
+        </div>
+
+        <!-- PHASE 1 -->
+        <div class="subsection">
+          <div class="step-label">Phase 1</div>
+          <div class="subsection-title"><i class="fa-solid fa-cube"></i> Prerequisites & Infrastructure Readiness</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Task</th><th>Owner Team</th><th>Details</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono-dim">1.1</td>
+                  <td style="color:var(--text)">Obtain BlueCat licenses & images</td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">MDDS 9.x license + Edge Resolver v4 for Azure (VHD), AWS (AMI), GCP (custom image <code>projects/bluecat-public/global/images/bluecat-dns-for-gcp</code>). Confirm Micetro Central license count covers 12 total servers.</td>
+                  <td style="color:var(--dim);font-size:12px">License keys active in BlueCat portal. Images staged to each cloud.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">1.2</td>
+                  <td style="color:var(--text)">Cloud secrets management setup</td>
+                  <td><span class="pill pill-blue">Cloud / IP Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Azure: Key Vault + Managed Identity. AWS: Secrets Manager + IAM Role for EC2. GCP: Secret Manager + Service Account (<code>roles/secretmanager.secretAccessor</code>). Store SSH key pair <code>bc-edge-key</code> and admin credential in each vault.</td>
+                  <td style="color:var(--dim);font-size:12px"><code>az keyvault secret show --name bc-edge-key</code><br><code>aws secretsmanager get-secret-value --secret-id bc-edge-key</code><br><code>gcloud secrets versions access latest --secret bc-edge-key</code></td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">1.3</td>
+                  <td style="color:var(--text)">Equinix Fabric BGP pre-staging</td>
+                  <td><span class="pill pill-purple">Network Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Provision Equinix Fabric Cloud Router (ASN 65000). Create VCs to Azure East US 2, AWS us-east-2, GCP us-east4. Pre-stage BGP sessions (hold-time 90s, keepalive 30s). Note BGP peer IPs for each cloud connection — provide to BlueCat team for FRR config.</td>
+                  <td style="color:var(--dim);font-size:12px">Equinix portal: all three VCs in <span class="pill pill-green">Active</span> state. BGP sessions in <span class="pill pill-amber">Idle/Active</span> (waiting for VMs).</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">1.4</td>
+                  <td style="color:var(--text)">Terraform baseline deployment</td>
+                  <td><span class="pill pill-blue">Cloud / IP Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Deploy /24 DNS subnets (192.168.16.0/24 Azure, 192.168.20.0/24 AWS, 192.168.30.0/24 GCP), security groups/NSGs/firewall rules (UDP/TCP 53, TCP 179, TCP 22), Route Server (Azure), TGW attachment (AWS), Cloud Router (GCP). Use Terraform from QSR automation guide v1.3.</td>
+                  <td style="color:var(--dim);font-size:12px"><code>terraform apply</code> — 0 errors. Subnet routes visible in each cloud.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">1.5</td>
+                  <td style="color:var(--text)">Micetro Central deployment</td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Deploy Micetro Central on <code>micetro-bc-eqx-01.corp.pri</code> (192.168.0.50). Join to <code>corp.pri</code> AD domain. Enable LDAP authentication pointing to <code>dc-corp-az-eus2-01.corp.pri</code>. Import LDAP groups: <code>DDI-Admins</code>, <code>DDI-Engineers</code>, <code>DDI-Developers</code>, <code>DDI-ReadOnly</code>. Assign roles per RBAC guide v1.3.</td>
+                  <td style="color:var(--dim);font-size:12px">Browse to Micetro UI → login with DDI-Engineers AD user → confirm access level.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PHASE 2: MDDS -->
+        <div class="subsection">
+          <div class="step-label">Phase 2</div>
+          <div class="subsection-title"><i class="fa-solid fa-database"></i> MDDS Hidden Primary Deployment (Equinix)</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Task</th><th>Owner</th><th>Commands / Details</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="mono-dim">2.1</td>
+                  <td style="color:var(--text)">Deploy MDDS VM</td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Provision <code>mdds-bc-eqx-nyc-01.corp.pri</code> on Equinix bare-metal or hosted VM. 8 vCPU / 32 GiB. Attach to management VLAN 192.168.0.0/24. Run BlueCat MDDS 9.x installer. Set hostname, DNS, NTP (use internal NTP servers).</td>
+                  <td style="color:var(--dim);font-size:12px"><code>ping 192.168.0.30</code> from Equinix management host. BlueCat console accessible on port 443.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">2.2</td>
+                  <td style="color:var(--text)">Create CORP primary zones</td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">In MDDS admin UI: create authoritative primary zones: <code>corp.pri</code>, <code>mcd.cloud</code>, <code>na.corp.pri</code>, <code>eu.corp.pri</code>, <code>apac.corp.pri</code>, <code>latam.corp.pri</code>, and reverse zones for 192.168.x.x ranges. Do not create market zones (<code>mkt.pri</code>) — these are delegated to Market DCs.</td>
+                  <td style="color:var(--dim);font-size:12px"><code>dig @192.168.0.30 SOA corp.pri</code> → returns SOA record.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">2.3</td>
+                  <td style="color:var(--text)">Configure TSIG for zone transfers</td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Generate TSIG key: <code>tsig-keygen -a hmac-sha256 bc-xfer-key</code>. Add to MDDS: allow-transfer to each Edge Resolver primary IP (192.168.16.20/21, 192.168.20.20/21, 192.168.30.20/21). Provide TSIG key material to Equinix/network team for DR MDDS pairing.</td>
+                  <td style="color:var(--dim);font-size:12px">TSIG key present in MDDS configuration. Outbound transfer blocked without key (test with <code>dig @192.168.0.30 AXFR corp.pri</code> — must fail without key).</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">2.4</td>
+                  <td style="color:var(--text)">Add MDDS to Micetro Central</td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">In Micetro: Admin → DNS Servers → Add Server → type BlueCat MDDS → enter IP 192.168.0.30 → provide API credentials. Confirm server appears green in dashboard.</td>
+                  <td style="color:var(--dim);font-size:12px">Micetro dashboard shows <code>mdds-bc-eqx-nyc-01</code> with <span class="pill pill-green">Synced</span> status.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PHASE 3: EDGE RESOLVERS -->
+        <div class="subsection">
+          <div class="step-label">Phase 3</div>
+          <div class="subsection-title"><i class="fa-solid fa-circle-nodes"></i> Edge Resolver Deployment — All Three Clouds</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Task</th><th>Cloud</th><th>Owner</th><th>Commands / Details</th></tr></thead>
+              <tbody>
+                <!-- AZURE -->
+                <tr>
+                  <td class="mono-dim">3.1</td>
+                  <td style="color:var(--text)">Deploy Azure Edge Resolver VMs</td>
+                  <td><span class="pill pill-blue">Azure</span></td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">RG: <code>rg-bc-dns-prod-eastus2</code>. Deploy 2× VMs from BlueCat Edge v4 VHD image. Names: <code>edge-bc-az-eus2-01</code>, <code>edge-bc-az-eus2-02</code>. Zone 1 and Zone 2. Size: Standard_D4s_v5. SSH key from Key Vault. NIC in subnet 192.168.16.0/24.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">3.2</td>
+                  <td style="color:var(--text)">Add secondary IP (Azure Anycast VIP)</td>
+                  <td><span class="pill pill-blue">Azure</span></td>
+                  <td><span class="pill pill-blue">Cloud/IP Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">
+<pre>az network nic ip-config create \
+  --resource-group rg-bc-dns-prod-eastus2 \
+  --nic-name edge-bc-az-eus2-01-nic \
+  --name anycast-vip \
+  --private-ip-address 10.100.100.100 \
+  --subnet dns-subnet-eastus2</pre>
+Repeat for <code>edge-bc-az-eus2-02-nic</code>.</td>
+                </tr>
+                <!-- AWS -->
+                <tr>
+                  <td class="mono-dim">3.3</td>
+                  <td style="color:var(--text)">Deploy AWS Edge Resolver instances</td>
+                  <td><span class="pill pill-amber">AWS</span></td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Deploy 2× EC2 instances from BlueCat Marketplace AMI. Names: <code>edge-bc-aws-use2-01</code>, <code>edge-bc-aws-use2-02</code>. Type: t3.large. AZs: us-east-2a / us-east-2b. SG: allow UDP/TCP 53, TCP 179, TCP 22. Attach TGW. SSH key from Secrets Manager via user_data.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">3.4</td>
+                  <td style="color:var(--text)">Assign secondary ENI IP (AWS Anycast VIP)</td>
+                  <td><span class="pill pill-amber">AWS</span></td>
+                  <td><span class="pill pill-blue">Cloud/IP Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">
+<pre>aws ec2 assign-private-ip-addresses \
+  --network-interface-id &lt;ENI-ID-01&gt; \
+  --private-ip-addresses 10.100.100.100 \
+  --allow-reassignment
+
+# Verify:
+aws ec2 describe-network-interfaces \
+  --network-interface-ids &lt;ENI-ID-01&gt; \
+  --query 'NetworkInterfaces[].PrivateIpAddresses'</pre>
+Repeat for <code>ENI-ID-02</code>.</td>
+                </tr>
+                <!-- GCP -->
+                <tr>
+                  <td class="mono-dim">3.5</td>
+                  <td style="color:var(--text)">Deploy GCP Edge Resolver VMs</td>
+                  <td><span class="pill pill-red">GCP</span></td>
+                  <td><span class="pill pill-cyan">BlueCat Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">Deploy 2× instances from custom image <code>projects/bluecat-public/global/images/bluecat-dns-for-gcp</code>. Names: <code>edge-bc-gcp-use4-01</code>, <code>edge-bc-gcp-use4-02</code>. Type: e2-standard-4. Zones: us-east4-a / us-east4-b. Firewall: allow UDP/TCP 53, TCP 179, TCP 22. SA with Secret Accessor role.</td>
+                </tr>
+                <tr>
+                  <td class="mono-dim">3.6</td>
+                  <td style="color:var(--text)">Configure alias IP (GCP Anycast VIP)</td>
+                  <td><span class="pill pill-red">GCP</span></td>
+                  <td><span class="pill pill-blue">Cloud/IP Team</span></td>
+                  <td style="color:var(--dim);font-size:12px">
+<pre>gcloud compute instances network-interfaces update \
+  edge-bc-gcp-use4-01 \
+  --zone us-east4-a \
+  --aliases "10.100.100.100/32"
+
+# Verify:
+gcloud compute instances describe edge-bc-gcp-use4-01 \
+  --zone us-east4-a \
+  --format="get(networkInterfaces[0].aliasIpRanges)"</pre>
+Repeat for <code>edge-bc-gcp-use4-02</code> in us-east4-b.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PHASE 4: FRR BGP -->
+        <div class="subsection" id="frr-config">
+          <div class="step-label">Phase 4</div>
+          <div class="subsection-title"><i class="fa-solid fa-route"></i> FRR/BGP Configuration — All Six Edge Resolvers</div>
+          <div class="callout callout-info">
+            <div class="callout-title">FRR Installation (All Edge VMs)</div>
+            <code>sudo apt update &amp;&amp; sudo apt install -y frr frr-pythontools</code><br>
+            <code>sudo sed -i 's/bgpd=no/bgpd=yes/' /etc/frr/daemons</code><br>
+            <code>sudo systemctl enable frr &amp;&amp; sudo systemctl start frr</code>
+          </div>
+          <p style="color:var(--dim);font-size:13px;margin-bottom:14px">Apply the following FRR configuration on every Edge Resolver. Replace <code>&lt;VM-PRIMARY-IP&gt;</code> and <code>&lt;EQUINIX-PEER-IP&gt;</code> with per-cloud values from the network team's pre-staging output.</p>
+          <pre><span class="code-comment"># /etc/frr/frr.conf — apply identically to all 6 Edge Resolver VMs</span>
+<span class="code-comment"># Substitute VM-PRIMARY-IP and EQUINIX-PEER-IP per environment (see table below)</span>
+
+<span class="code-key">router bgp</span> <span class="code-val">64512</span>
+ <span class="code-key">bgp router-id</span> <span class="code-val">&lt;VM-PRIMARY-IP&gt;</span>
+ <span class="code-key">bgp log-neighbor-changes</span>
+ !
+ <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> peer-group
+ <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> remote-as <span class="code-val">65000</span>
+ <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> password <span class="code-val">&lt;MD5-shared-secret-from-network-team&gt;</span>
+ <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> timers <span class="code-val">30 90</span>
+ <span class="code-key">neighbor</span> <span class="code-val">&lt;EQUINIX-PEER-IP&gt;</span> peer-group <span class="code-val">EQUINIX</span>
+ !
+ <span class="code-key">address-family ipv4 unicast</span>
+  <span class="code-key">network</span> <span class="code-val">10.100.100.100/32</span>
+  <span class="code-key">network</span> <span class="code-val">10.100.100.102/32</span>    <span class="code-comment"># ECS regional VIP</span>
+  <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> activate
+  <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> prefix-list <span class="code-val">ANYCAST-ONLY</span> out
+  <span class="code-key">neighbor</span> <span class="code-val">EQUINIX</span> route-map <span class="code-val">ANYCAST-OUT</span> out
+ <span class="code-key">exit-address-family</span>
+!
+<span class="code-key">ip prefix-list</span> <span class="code-val">ANYCAST-ONLY</span> seq 10 permit <span class="code-val">10.100.100.100/32</span>
+<span class="code-key">ip prefix-list</span> <span class="code-val">ANYCAST-ONLY</span> seq 20 permit <span class="code-val">10.100.100.102/32</span>
+<span class="code-key">ip prefix-list</span> <span class="code-val">ANYCAST-ONLY</span> seq 100 deny <span class="code-val">0.0.0.0/0</span> le 32
+!
+<span class="code-key">route-map</span> <span class="code-val">ANYCAST-OUT</span> permit 10
+ <span class="code-key">match ip address prefix-list</span> <span class="code-val">ANYCAST-ONLY</span>
+ <span class="code-key">set community</span> <span class="code-val">64512:100</span> additive
+!
+<span class="code-cmd">write memory</span></pre>
+
+          <!-- Per-VM substitution table -->
+          <div class="tbl-wrap" style="margin-top:16px">
+            <table>
+              <thead><tr><th>VM Hostname</th><th>VM-PRIMARY-IP</th><th>EQUINIX-PEER-IP</th><th>Cloud BGP Peer ASN</th><th>AS-Path Prepend (for hierarchy)</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">edge-bc-az-eus2-01</td><td class="mono">192.168.16.20</td><td class="mono-dim">&lt;from network team&gt;</td><td class="mono-dim">65000 (via Azure Route Server 65515)</td><td><span class="pill pill-green">1× (preferred)</span></td></tr>
+                <tr><td class="mono">edge-bc-az-eus2-02</td><td class="mono">192.168.16.21</td><td class="mono-dim">&lt;from network team&gt;</td><td class="mono-dim">65000 (via Azure Route Server 65515)</td><td><span class="pill pill-green">1× (preferred)</span></td></tr>
+                <tr><td class="mono">edge-bc-aws-use2-01</td><td class="mono">192.168.20.20</td><td class="mono-dim">&lt;from network team&gt;</td><td class="mono-dim">65000 (via TGW)</td><td><span class="pill pill-amber">2× (secondary)</span></td></tr>
+                <tr><td class="mono">edge-bc-aws-use2-02</td><td class="mono">192.168.20.21</td><td class="mono-dim">&lt;from network team&gt;</td><td class="mono-dim">65000 (via TGW)</td><td><span class="pill pill-amber">2× (secondary)</span></td></tr>
+                <tr><td class="mono">edge-bc-gcp-use4-01</td><td class="mono">192.168.30.20</td><td class="mono-dim">&lt;from network team&gt;</td><td class="mono-dim">65000 (via Cloud Router 16550)</td><td><span class="pill pill-red">3× (tertiary)</span></td></tr>
+                <tr><td class="mono">edge-bc-gcp-use4-02</td><td class="mono">192.168.30.21</td><td class="mono-dim">&lt;from network team&gt;</td><td class="mono-dim">65000 (via Cloud Router 16550)</td><td><span class="pill pill-red">3× (tertiary)</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PHASE 5: HEALTH CHECKS -->
+        <div class="subsection" id="health-checks">
+          <div class="step-label">Phase 5</div>
+          <div class="subsection-title"><i class="fa-solid fa-heart-pulse"></i> Health-Based BGP Withdrawal (All Edge Resolvers)</div>
+          <p style="color:var(--dim);font-size:13px;margin-bottom:14px">Deploy this script on all six Edge Resolvers as a systemd timer. It withdraws the Anycast VIP from BGP if local DNS is unhealthy, and re-advertises when recovered.</p>
+          <pre><span class="code-comment"># /usr/local/bin/bc-dns-health-check.sh</span>
+<span class="code-comment">#!/bin/bash</span>
+<span class="code-key">PROBE_DOMAIN</span>=<span class="code-val">"corp.pri"</span>
+<span class="code-key">VIP</span>=<span class="code-val">"10.100.100.100/32"</span>
+<span class="code-key">ECS_VIP</span>=<span class="code-val">"10.100.100.102/32"</span>
+
+if dig @127.0.0.1 SOA <span class="code-val">"${PROBE_DOMAIN}"</span> +short +time=3 +tries=2 &gt; /dev/null 2&gt;&amp;1; then
+  <span class="code-comment"># DNS healthy — ensure VIPs are advertised</span>
+  vtysh -c <span class="code-val">"configure terminal"</span> -c <span class="code-val">"router bgp 64512"</span> \
+        -c <span class="code-val">"address-family ipv4 unicast"</span> \
+        -c <span class="code-val">"network ${VIP}"</span> \
+        -c <span class="code-val">"network ${ECS_VIP}"</span> \
+        -c <span class="code-val">"end"</span> -c <span class="code-val">"write"</span>
+  logger -t bc-health <span class="code-val">"DNS healthy — VIPs advertised"</span>
+else
+  <span class="code-comment"># DNS unhealthy — withdraw VIPs from BGP</span>
+  vtysh -c <span class="code-val">"configure terminal"</span> -c <span class="code-val">"router bgp 64512"</span> \
+        -c <span class="code-val">"address-family ipv4 unicast"</span> \
+        -c <span class="code-val">"no network ${VIP}"</span> \
+        -c <span class="code-val">"no network ${ECS_VIP}"</span> \
+        -c <span class="code-val">"end"</span> -c <span class="code-val">"write"</span>
+  logger -t bc-health <span class="code-val">"DNS unhealthy — VIPs WITHDRAWN"</span>
+fi</pre>
+          <pre><span class="code-comment"># /etc/systemd/system/bc-dns-health.timer</span>
+[Unit]
+Description=BlueCat DNS Health Check &amp; BGP VIP Manager
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=30s
+
+[Install]
+WantedBy=multi-user.target</pre>
+          <pre><span class="code-cmd">sudo chmod +x /usr/local/bin/bc-dns-health-check.sh
+sudo systemctl enable bc-dns-health.timer
+sudo systemctl start bc-dns-health.timer</span></pre>
+        </div>
+
+        <!-- PHASE 6: MICETRO -->
+        <div class="subsection">
+          <div class="step-label">Phase 6</div>
+          <div class="subsection-title"><i class="fa-solid fa-gears"></i> Micetro Central — Add Servers & Configure</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Task</th><th>Details</th></tr></thead>
+              <tbody>
+                <tr><td class="mono-dim">6.1</td><td style="color:var(--text)">Add all Edge Resolvers to Micetro</td><td style="color:var(--dim);font-size:12px">Admin → DNS Servers → Add Server → BlueCat Edge Resolver → enter each primary IP. Add all 6: 192.168.16.20/21, 192.168.20.20/21, 192.168.30.20/21. Assign role: Authoritative + Recursive.</td></tr>
+                <tr><td class="mono-dim">6.2</td><td style="color:var(--text)">Configure zone delegation</td><td style="color:var(--dim);font-size:12px">Set MDDS (192.168.0.30) as primary. All Edge Resolvers as secondaries. Enable TSIG for AXFR. Shadow-mode forwarding for legacy AD DC records: point to <code>dc-corp-az-eus2-01.corp.pri</code> (192.168.16.50).</td></tr>
+                <tr><td class="mono-dim">6.3</td><td style="color:var(--text)">Configure ECS on Edge Resolvers</td><td style="color:var(--dim);font-size:12px">For ECS VIP (10.100.100.102/32): DNS → Resolver → Advanced → Enable Client Subnet Support on all Edge Resolvers. This enables geo-steering for Market tenants via the REGIONAL-ECS VIP.</td></tr>
+                <tr><td class="mono-dim">6.4</td><td style="color:var(--text)">DHCP VNet/Scope configuration</td><td style="color:var(--dim);font-size:12px">Azure VNet DNS: Portal → VNet → DNS Servers → Custom → <code>10.100.100.100</code>. AWS DHCP Options Set: Option 6 = <code>10.100.100.100</code>. GCP VNet: Custom DNS resolver → <code>10.100.100.100</code>. Apply across all CORP VNets.</td></tr>
+                <tr><td class="mono-dim">6.5</td><td style="color:var(--text)">Final readiness handover to network team</td><td style="color:var(--dim);font-size:12px">Provide network team: all 6 VM primary IPs, local ASN 64512, VIPs 10.100.100.100/32 and 10.100.100.102/32, FRR config files, MD5 password. Confirm all 6 FRR peers show <span class="pill pill-amber">Established</span> (not yet advertising). Authorize advertisement only after Micetro shows all servers <span class="pill pill-green">green</span>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </div><!-- /tab-impl -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- TAB: BGP TEST SCENARIOS -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-bgp">
+
+      <section class="section">
+        <h2 class="section-header"><i class="fa-solid fa-flask-vial"></i> BGP Test Scenarios</h2>
+        <p style="color:var(--dim);font-size:13px;margin-bottom:20px;max-width:820px">All scenarios are executed after Phase 6 network advertisement is confirmed. Each scenario includes setup steps, execution commands, expected results, and rollback procedures. Run from the jump host <code>jump-bc-az-eus2-01.corp.pri</code> (192.168.16.61) unless stated otherwise.</p>
+
+        <!-- Quick Ref -->
+        <div class="subsection" id="bgp-quick">
+          <div class="subsection-title"><i class="fa-solid fa-bolt"></i> BGP Quick Reference Commands</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <div>
+              <div class="step-label">Verification (run on any Edge Resolver)</div>
+              <pre style="margin:0;font-size:11px"><span class="code-comment"># BGP peer summary</span>
+<span class="code-cmd">vtysh -c "show ip bgp summary"</span>
+
+<span class="code-comment"># Specific VIP route detail</span>
+<span class="code-cmd">vtysh -c "show ip bgp 10.100.100.100/32"</span>
+
+<span class="code-comment"># BGP neighbor detail</span>
+<span class="code-cmd">vtysh -c "show bgp neighbors &lt;PEER-IP&gt;"</span>
+
+<span class="code-comment"># Advertised routes to peer</span>
+<span class="code-cmd">vtysh -c "show bgp neighbors &lt;PEER-IP&gt; advertised-routes"</span></pre>
+            </div>
+            <div>
+              <div class="step-label">DNS Validation (run from test clients)</div>
+              <pre style="margin:0;font-size:11px"><span class="code-comment"># Basic anycast resolution</span>
+<span class="code-cmd">dig @10.100.100.100 corp.pri SOA</span>
+
+<span class="code-comment"># Continuous nslookup for failover timing</span>
+<span class="code-cmd">while true; do
+  nslookup portal.corp.pri 10.100.100.100
+  sleep 1
+done</span>
+
+<span class="code-comment"># AD DC locator test</span>
+<span class="code-cmd">nltest /dsgetdc:corp.pri /force</span>
+
+<span class="code-comment"># ECS VIP test</span>
+<span class="code-cmd">dig @10.100.100.102 portal.corp.pri +subnet=&lt;client-IP&gt;/24</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENARIO CARDS -->
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-01</span>
+            <span class="scenario-title">Equal-Cost Anycast — Nearest Node Resolution</span>
+            <span class="pill pill-green" style="margin-left:auto">Basic</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Confirm that clients in each cloud region resolve DNS via their topologically nearest Edge Resolver, and that all six nodes are advertising the VIP equally.</p>
+            <ul class="check-list">
+              <li>From test client in Azure East US 2 VNet: <code>dig @10.100.100.100 portal.corp.pri +short</code> — expected: response from <code>edge-bc-az-eus2-01</code> or <code>-02</code> (verify via query logs).</li>
+              <li>From test client in AWS us-east-2: same dig — expected: response from <code>edge-bc-aws-use2-01</code> or <code>-02</code>.</li>
+              <li>From test client in GCP us-east4: same dig — expected: response from <code>edge-bc-gcp-use4-01</code> or <code>-02</code>.</li>
+              <li>Confirm all 6 nodes show <code>Established</code>: <code>for host in 192.168.16.20 192.168.16.21 192.168.20.20 192.168.20.21 192.168.30.20 192.168.30.21; do ssh bluecat@$host "vtysh -c 'show ip bgp summary' | grep -E 'Neighbor|Estab'"; done</code></li>
+              <li><strong>Expected Result:</strong> Each cloud's clients prefer their local nodes. BGP summary shows 6 unique paths to 10.100.100.100/32 in Equinix route table.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-02</span>
+            <span class="scenario-title">Single Node Failure — FRR Stop & Convergence Timing</span>
+            <span class="pill pill-amber" style="margin-left:auto">Failover</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Validate sub-5-second convergence when one Edge Resolver is taken offline. Client queries must continue resolving during the event.</p>
+            <ul class="check-list">
+              <li>Start continuous DNS probe from Azure test client: <code>while true; do dig @10.100.100.100 portal.corp.pri +short; sleep 0.5; done</code></li>
+              <li>SSH to <code>edge-bc-az-eus2-01.corp.pri</code> and stop FRR: <code>sudo systemctl stop frr</code></li>
+              <li>Observe: probe client experiences ≤5s gap or zero interruption (BGP hold-timer = 90s, but health script fires every 30s — confirm health-script withdrawal fires faster). Timer should withdraw VIP within 30s of DNS failure, BGP within hold-timer.</li>
+              <li>Restore: <code>sudo systemctl start frr</code> — confirm VIP re-advertised: <code>vtysh -c "show ip bgp 10.100.100.100"</code></li>
+              <li><strong>Success Criteria:</strong> DNS resolution never returns SERVFAIL for more than 5 consecutive seconds. Syslog shows <code>bc-health: DNS unhealthy — VIPs WITHDRAWN</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-03</span>
+            <span class="scenario-title">AS-Path Prepending — Traffic Engineering per Cloud</span>
+            <span class="pill pill-blue" style="margin-left:auto">Traffic Engineering</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Validate the Azure → AWS → GCP preference hierarchy using AS-path prepending. Confirm traffic shifts predictably when preference changes.</p>
+            <ul class="check-list">
+              <li>Add 2× prepend on AWS nodes. SSH to <code>edge-bc-aws-use2-01</code> and <code>-02</code>:<br><code>vtysh -c "conf t" -c "route-map ANYCAST-OUT permit 10" -c "set as-path prepend 64512 64512" -c "end" -c "write"</code></li>
+              <li>Add 3× prepend on GCP nodes. SSH to <code>edge-bc-gcp-use4-01</code> and <code>-02</code>:<br><code>vtysh -c "conf t" -c "route-map ANYCAST-OUT permit 10" -c "set as-path prepend 64512 64512 64512" -c "end" -c "write"</code></li>
+              <li>Verify from Equinix BGP route table (coordinate with network team): Azure paths should show shorter AS-path and be preferred for all global clients.</li>
+              <li>Revert by removing the as-path prepend statements after validation.</li>
+              <li><strong>Success Criteria:</strong> Global clients outside any cloud prefer Azure endpoints. Azure goes down → AWS preferred. AWS goes down → GCP used.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-04</span>
+            <span class="scenario-title">Full Cloud Withdrawal — Azure CSP Outage Simulation</span>
+            <span class="pill pill-red" style="margin-left:auto">Disaster Recovery</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Simulate complete Azure CSP outage. Both Azure Edge Resolvers stop advertising. Confirm full traffic failover to AWS and GCP with no DNS outage for 48,000+ restaurants.</p>
+            <ul class="check-list">
+              <li>Run continuous probes from multiple test clients (Azure, AWS, GCP, simulated WAN client).</li>
+              <li>Stop FRR on both Azure nodes simultaneously:<br><code>for h in 192.168.16.20 192.168.16.21; do ssh bluecat@$h "sudo systemctl stop frr" &amp; done; wait</code></li>
+              <li>Confirm BGP withdraws 10.100.100.100/32 from Azure paths: check with network team on Equinix router: <code>show bgp 10.100.100.100 detail</code> — Azure paths must be gone.</li>
+              <li>Confirm AWS and GCP paths remain: clients continue resolving. No SERVFAIL observed.</li>
+              <li>Re-enable Azure: <code>for h in 192.168.16.20 192.168.16.21; do ssh bluecat@$h "sudo systemctl start frr"; done</code> — confirm paths return within BGP hold-timer.</li>
+              <li><strong>Success Criteria:</strong> Zero DNS outage during full Azure failure. Convergence to AWS/GCP in ≤90s (hold-timer). Return of Azure paths in ≤5 min.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-05</span>
+            <span class="scenario-title">Health-Based Auto-Withdrawal — DNS Service Failure</span>
+            <span class="pill pill-purple" style="margin-left:auto">Automation</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Confirm the health-check script automatically withdraws the anycast VIP when the local DNS daemon fails, without any manual intervention.</p>
+            <ul class="check-list">
+              <li>On <code>edge-bc-gcp-use4-01</code>, simulate DNS failure (stop the Edge Resolver service, not FRR): consult BlueCat Edge admin guide for service stop procedure.</li>
+              <li>Within 30s (health timer interval), observe <code>journalctl -f -t bc-health</code> showing <code>DNS unhealthy — VIPs WITHDRAWN</code>.</li>
+              <li>FRR peer remains connected but <code>no network 10.100.100.100/32</code> is applied — confirm with <code>vtysh -c "show ip bgp 10.100.100.100"</code> — local VIP should no longer be in the BGP table.</li>
+              <li>Restore Edge Resolver service. Within the next 30s health check cycle, VIP is re-advertised automatically.</li>
+              <li><strong>Success Criteria:</strong> Withdrawal fires within 30s of DNS failure. Re-advertisement fires within 30s of DNS recovery. No human intervention required.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-06</span>
+            <span class="scenario-title">ECS Regional VIP — Geo-Steering Validation</span>
+            <span class="pill pill-cyan" style="margin-left:auto">Geo-Steering</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Validate that the REGIONAL-ECS VIP (10.100.100.102/32) provides EDNS Client Subnet-aware responses that direct Market tenant workloads to region-appropriate endpoints.</p>
+            <ul class="check-list">
+              <li>From NA Market test client: <code>dig @10.100.100.102 portal.corp.pri +subnet=10.200.0.1/24</code> — confirm response is geo-appropriate (NA endpoints).</li>
+              <li>Simulate EMEA client: <code>dig @10.100.100.102 portal.corp.pri +subnet=10.201.0.1/24</code> — confirm EMEA endpoint returned.</li>
+              <li>Confirm Market tenant isolation: EMEA Market zone records must not be returned to NA Market client queries and vice versa.</li>
+              <li>Verify ECS is enabled on all 6 Edge Resolvers in Micetro Central: DNS → Resolver → Advanced → Client Subnet Support = Enabled.</li>
+              <li><strong>Success Criteria:</strong> ECS responses vary by subnet prefix. Market zone records remain isolated. No cross-market zone leakage.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-07</span>
+            <span class="scenario-title">Phased Rollout — Community-Based Market Scoping</span>
+            <span class="pill pill-amber" style="margin-left:auto">Migration</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Validate blast-radius control during phased migration from AD DNS to BlueCat. Enable BlueCat anycast only for NA Market first, while other markets remain on legacy DNS.</p>
+            <ul class="check-list">
+              <li>Add community tag to NA-only advertisement on all Edge Resolvers:<br><code>vtysh -c "conf t" -c "route-map ANYCAST-OUT permit 10" -c "set community 64512:100 64512:NA additive" -c "end"</code></li>
+              <li>Coordinate with network team: configure Equinix to only propagate the 10.100.100.100/32 prefix to NA Market VRF. Other market VRFs continue pointing to legacy AD DNS IPs.</li>
+              <li>DHCP option 6 in NA Market scopes: update to <code>10.100.100.100</code>. Other market scopes: retain legacy DNS IPs.</li>
+              <li>Validate: NA Market clients resolve via BlueCat. EMEA/APAC/LATAM clients still reach legacy AD DNS. Monitor both for 72 hours before expanding.</li>
+              <li><strong>Success Criteria:</strong> Zero resolution failures in NA Market. Zero impact to other markets. Rollback path: revert DHCP option 6 to legacy IPs.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-08</span>
+            <span class="scenario-title">Rollback — Emergency Reversion to Legacy AD DNS</span>
+            <span class="pill pill-red" style="margin-left:auto">Rollback</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Execute and time a full emergency rollback from BlueCat anycast to legacy Microsoft AD DNS within SLA (target: ≤15 minutes).</p>
+            <ul class="check-list">
+              <li>Revert DHCP option 6 in all market scopes to legacy AD DNS IPs (pre-prepared runbook). In Azure: Portal → VNet DNS → switch back to DC IPs. In AWS: DHCP Options Set revert. In GCP: VPC DNS settings revert.</li>
+              <li>As clients renew DHCP leases (or forced renew), they return to AD DNS. Force renew on test clients: Windows: <code>ipconfig /release && ipconfig /renew</code>. Linux: <code>dhclient -r && dhclient</code>.</li>
+              <li>Optionally stop FRR on all Edge Resolvers to immediately withdraw the anycast VIP from BGP (belt-and-suspenders).</li>
+              <li>Verify with AD DC: <code>dig @192.168.16.50 portal.corp.pri</code> returns records. Client DNS shows legacy AD DC IPs.</li>
+              <li><strong>Success Criteria:</strong> All clients resolve via AD DNS within 15 minutes of rollback initiation. BlueCat Edge Resolvers can remain online for monitoring without serving client traffic.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-09</span>
+            <span class="scenario-title">Rate Limiting & DNS DDoS Protection</span>
+            <span class="pill pill-purple" style="margin-left:auto">Security</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Validate that BlueCat Edge Resolvers enforce DNS rate limiting to protect against amplification attacks and query flooding across the 48,000-restaurant footprint.</p>
+            <ul class="check-list">
+              <li>Configure rate limiting in BlueCat Edge Resolver admin UI: DNS → Rate Limiting → set per-client limit (e.g., 100 QPS per source IP) and global limit.</li>
+              <li>Run DNS flood from test client: <code>dnsperf -s 10.100.100.100 -d queryfile.txt -Q 500 -l 30</code> (requires dnsperf tool).</li>
+              <li>Confirm: responses from Edge Resolver drop to configured rate limit. SERVFAIL or REFUSED returned for excess queries. Legitimate queries from other clients are unaffected.</li>
+              <li>Verify rate-limit logs in Micetro Central: Monitoring → DNS Rate Limit Events.</li>
+              <li><strong>Success Criteria:</strong> Rate limiting fires at configured threshold. Legitimate parallel clients unaffected. Log evidence captured in Micetro.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-10</span>
+            <span class="scenario-title">BGP Authentication & Strict Prefix Filtering — Market Isolation</span>
+            <span class="pill pill-red" style="margin-left:auto">Security</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Verify that BGP session MD5 authentication is enforced and that strict prefix filtering prevents any route leakage between Market tenants or advertisement of non-anycast prefixes.</p>
+            <ul class="check-list">
+              <li>Attempt BGP peering without MD5 password from a test router — confirm session is rejected. Check FRR log: <code>journalctl -u frr | grep -i "auth"</code>.</li>
+              <li>Attempt to advertise a non-anycast prefix (e.g., 192.168.16.0/24) via <code>vtysh -c "conf t" -c "router bgp 64512" -c "address-family ipv4 unicast" -c "network 192.168.16.0/24"</code> — confirm Equinix router does NOT accept it (prefix-list ANYCAST-ONLY blocks it). Coordinate with network team to verify on Equinix.</li>
+              <li>Verify Market VRFs cannot receive routes from other Market VRFs via the Equinix route table — network team runs <code>show route vrf MARKET-NA</code> and confirms only CORP prefixes and its own market prefix are present.</li>
+              <li><strong>Success Criteria:</strong> MD5 authentication enforced on all BGP sessions. Prefix-list blocks all non-anycast advertisements. Market VRF route tables confirm zero cross-market leakage.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-num">BGP-11</span>
+            <span class="scenario-title">Data Integrity & TSIG Zone Transfer Validation</span>
+            <span class="pill pill-green" style="margin-left:auto">Data Integrity</span>
+          </div>
+          <div class="scenario-body">
+            <p><strong style="color:var(--text)">Objective:</strong> Confirm all six Edge Resolvers have received complete, consistent zone data from the MDDS hidden primary via TSIG-secured AXFR/IXFR.</p>
+            <ul class="check-list">
+              <li>Query SOA serial from MDDS: <code>dig @192.168.0.30 SOA corp.pri +short | awk '{print $3}'</code> — note serial number.</li>
+              <li>Query SOA serial from all six Edge Resolvers and confirm they match MDDS serial:<br><code>for h in 192.168.16.20 192.168.16.21 192.168.20.20 192.168.20.21 192.168.30.20 192.168.30.21; do echo -n "$h: "; dig @$h SOA corp.pri +short | awk '{print $3}'; done</code></li>
+              <li>Attempt AXFR without TSIG key — must be refused: <code>dig @192.168.16.20 AXFR corp.pri</code> should return <code>REFUSED</code>.</li>
+              <li>Increment a test record on MDDS, wait for IXFR propagation, re-query from all Edge Resolvers to confirm update received within zone TTL.</li>
+              <li>In Micetro Central: check zone transfer history for all servers — all should show <span class="pill pill-green">Success</span> with matching serial.</li>
+              <li><strong>Success Criteria:</strong> All Edge Resolvers have identical SOA serial as MDDS. AXFR without TSIG key is refused. Incremental updates propagate within configured refresh interval.</li>
+            </ul>
+          </div>
+        </div>
+
+      </section>
+    </div><!-- /tab-bgp -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- TAB: WORKSHOP MATERIALS -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-workshop">
+
+      <section class="section">
+        <h2 class="section-header"><i class="fa-solid fa-chalkboard-user"></i> Workshop Materials — Team-Specific</h2>
+        <p style="color:var(--dim);font-size:13px;margin-bottom:24px;max-width:820px">Three concurrent workshop tracks for the EfficientIP/BlueCat IP team, the BlueCat DNS engineering team, and the network team. Each track has focused session plans, pre-work, deliverables, and escalation paths. Recommended duration: 2-day on-site workshop.</p>
+
+        <!-- Team Role Cards -->
+        <div class="team-grid">
+          <div class="team-card">
+            <div class="team-card-header">
+              <div class="team-icon" style="background:rgba(16,185,129,.15);color:var(--green)"><i class="fa-solid fa-network-wired"></i></div>
+              <div>
+                <div class="team-name">EfficientIP / IP Team</div>
+                <div class="team-role">DDI · IPAM · DHCP · RBAC</div>
+              </div>
+            </div>
+            <ul class="team-tasks">
+              <li>IPAM subnet management across 3 clouds</li>
+              <li>DHCP scope updates (Option 6 → 10.100.100.100)</li>
+              <li>RBAC model implementation in Micetro</li>
+              <li>Cloud service account provisioning</li>
+              <li>TSIG key generation and distribution</li>
+              <li>Conditional DNS client class configuration</li>
+              <li>EfficientIP SOLIDserver parallel POC tasks</li>
+            </ul>
+          </div>
+          <div class="team-card">
+            <div class="team-card-header">
+              <div class="team-icon" style="background:rgba(6,182,212,.15);color:var(--cyan)"><i class="fa-solid fa-dna"></i></div>
+              <div>
+                <div class="team-name">BlueCat Team</div>
+                <div class="team-role">MDDS · Edge Resolver · Micetro</div>
+              </div>
+            </div>
+            <ul class="team-tasks">
+              <li>MDDS hidden primary deployment & zone creation</li>
+              <li>Edge Resolver VM deployment (all 3 clouds)</li>
+              <li>FRR/BGP config on all 6 Edge Resolvers</li>
+              <li>Micetro Central server registration & sync</li>
+              <li>Zone transfer validation (TSIG AXFR/IXFR)</li>
+              <li>Health-check script deployment</li>
+              <li>AD integration and shadow-mode forwarding</li>
+            </ul>
+          </div>
+          <div class="team-card">
+            <div class="team-card-header">
+              <div class="team-icon" style="background:rgba(167,139,250,.15);color:var(--purple)"><i class="fa-solid fa-tower-broadcast"></i></div>
+              <div>
+                <div class="team-name">Network Team</div>
+                <div class="team-role">BGP · Equinix · Routing · Security</div>
+              </div>
+            </div>
+            <ul class="team-tasks">
+              <li>Equinix Fabric Cloud Router provisioning</li>
+              <li>VC creation (Azure · AWS · GCP)</li>
+              <li>BGP peer IP delivery to BlueCat team</li>
+              <li>VRF/community-based Market isolation</li>
+              <li>Route advertisement authorization (post-validation)</li>
+              <li>Prefix-list and MD5 authentication enforcement</li>
+              <li>BGP scenario execution (Scenarios 1–11)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- WORKSHOP DAY 1 -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-calendar-day"></i> Day 1 — Foundation & Deployment</div>
+
+          <div class="ws-card" id="ws-ip">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-green">EfficientIP / IP Team</span>
+              <span class="ws-title">Session 1A: IPAM, DHCP, RBAC & Secrets</span>
+              <span class="pill pill-amber" style="margin-left:auto">09:00–13:00</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Pre-Work (complete before session)</div>
+                <ul class="ws-items">
+                  <li>Access to Azure Key Vault, AWS Secrets Manager, GCP Secret Manager</li>
+                  <li>SSH key pair <code>bc-edge-key</code> generated and staged</li>
+                  <li>AD groups created: <code>DDI-Admins</code>, <code>DDI-Engineers</code>, <code>DDI-Developers</code>, <code>DDI-ReadOnly</code></li>
+                  <li>DHCP scopes documented per cloud with current Option 6 values</li>
+                  <li>EfficientIP SOLIDserver images staged in all 3 clouds (parallel POC)</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">Session Tasks</div>
+                <ul class="ws-items">
+                  <li>Store SSH key in all 3 cloud secret stores — validate retrieval via CLI</li>
+                  <li>Provision cloud service accounts per RBAC guide v1.3 table</li>
+                  <li>Import LDAP groups into Micetro Central; assign roles; test logins</li>
+                  <li>Generate TSIG key (<code>bc-xfer-key</code>); distribute to BlueCat team</li>
+                  <li>Update DHCP Option 6 in test scopes (one per cloud) to <code>10.100.100.100</code></li>
+                  <li>Validate cloud discovery in Micetro (192.168.16/20/30.0/24 subnets visible)</li>
+                  <li>SOLIDserver parallel: begin Phase 1 prerequisites for EfficientIP track</li>
+                </ul>
+              </div>
+            </div>
+            <div style="padding:10px 18px 14px;border-top:1px solid var(--border)">
+              <div class="ws-col-title">Deliverables / Exit Criteria</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+                <span class="pill pill-green">RBAC roles assigned & tested</span>
+                <span class="pill pill-green">Secrets stored in all 3 vaults</span>
+                <span class="pill pill-green">TSIG key distributed</span>
+                <span class="pill pill-amber">DHCP test scopes updated</span>
+                <span class="pill pill-blue">Cloud discovery confirmed in Micetro</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ws-card" id="ws-bc">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-cyan">BlueCat Team</span>
+              <span class="ws-title">Session 1B: MDDS Deployment & Zone Creation</span>
+              <span class="pill pill-amber" style="margin-left:auto">09:00–13:00</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Pre-Work</div>
+                <ul class="ws-items">
+                  <li>MDDS 9.x VM provisioned on Equinix (<code>mdds-bc-eqx-nyc-01.corp.pri</code>, IP 192.168.0.30)</li>
+                  <li>Micetro Central installed and domain-joined to <code>corp.pri</code></li>
+                  <li>BlueCat Edge v4 images staged in Azure Marketplace, AWS Marketplace, GCP image catalog</li>
+                  <li>TSIG key material received from IP team</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">Session Tasks</div>
+                <ul class="ws-items">
+                  <li>Configure MDDS: create primary zones for <code>corp.pri</code>, <code>mcd.cloud</code>, regional zones, reverse zones</li>
+                  <li>Apply TSIG key for zone transfers (allow-transfer block with TSIG)</li>
+                  <li>Add MDDS to Micetro Central; confirm green sync status</li>
+                  <li>Deploy Azure HA pair: <code>edge-bc-az-eus2-01/02</code> from VHD image; assign secondary IPs</li>
+                  <li>Install FRR on Azure VMs; apply FRR config template (substitute Azure peer IP from network team)</li>
+                  <li>Validate Azure BGP peer <code>Established</code> (before advertisement): <code>vtysh -c "show ip bgp summary"</code></li>
+                  <li>Add Azure Edge Resolvers to Micetro Central</li>
+                </ul>
+              </div>
+            </div>
+            <div style="padding:10px 18px 14px;border-top:1px solid var(--border)">
+              <div class="ws-col-title">Deliverables / Exit Criteria</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+                <span class="pill pill-green">MDDS zones created & SOA verified</span>
+                <span class="pill pill-green">Azure Edge VMs deployed</span>
+                <span class="pill pill-green">Azure FRR BGP peers Established</span>
+                <span class="pill pill-cyan">Azure nodes in Micetro (green)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ws-card" id="ws-net">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-purple">Network Team</span>
+              <span class="ws-title">Session 1C: Equinix Fabric & BGP Pre-Staging</span>
+              <span class="pill pill-amber" style="margin-left:auto">09:00–13:00</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Pre-Work</div>
+                <ul class="ws-items">
+                  <li>Equinix Fabric account with Cloud Router provisioned (ASN 65000)</li>
+                  <li>VCs ordered to Azure East US 2, AWS us-east-2, GCP us-east4</li>
+                  <li>Market VRF definitions documented (NA, EMEA, APAC, LATAM)</li>
+                  <li>MD5 shared secret decided and shared with BlueCat team</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">Session Tasks</div>
+                <ul class="ws-items">
+                  <li>Confirm all 3 Equinix VCs in <span class="pill pill-green">Active</span> state</li>
+                  <li>Configure BGP sessions on Cloud Router (hold 90s, keepalive 30s, MD5 auth)</li>
+                  <li>Document and distribute BGP peer IPs (per cloud) to BlueCat team</li>
+                  <li>Configure prefix-list <code>ANYCAST-ONLY</code>: permit 10.100.100.100/32, 10.100.100.102/32 only</li>
+                  <li>Configure Market VRF isolation: community-based route filtering per VRF</li>
+                  <li>Confirm BGP sessions in <span class="pill pill-amber">Active</span> (waiting for VM peers) — do NOT advertise yet</li>
+                  <li>Prepare advertisement runbook (will execute in Day 2 after validation)</li>
+                </ul>
+              </div>
+            </div>
+            <div style="padding:10px 18px 14px;border-top:1px solid var(--border)">
+              <div class="ws-col-title">Deliverables / Exit Criteria</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+                <span class="pill pill-green">All 3 Equinix VCs Active</span>
+                <span class="pill pill-green">BGP peer IPs distributed</span>
+                <span class="pill pill-green">Prefix-lists configured</span>
+                <span class="pill pill-amber">Market VRF isolation staged</span>
+                <span class="pill pill-blue">Advertisement runbook ready</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DAY 1 AFTERNOON -->
+          <div class="ws-card">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-cyan">BlueCat Team</span>
+              <span class="ws-title">Session 1D: AWS & GCP Edge Resolver Deployment</span>
+              <span class="pill pill-amber" style="margin-left:auto">14:00–18:00</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Tasks</div>
+                <ul class="ws-items">
+                  <li>Deploy AWS HA pair: <code>edge-bc-aws-use2-01/02</code> via Marketplace AMI</li>
+                  <li>Assign secondary ENI IPs (10.100.100.100) on each AWS instance</li>
+                  <li>Install FRR on AWS VMs; apply config template with AWS TGW peer IP</li>
+                  <li>Validate AWS BGP peer <code>Established</code></li>
+                  <li>Deploy GCP HA pair: <code>edge-bc-gcp-use4-01/02</code> via custom image</li>
+                  <li>Configure alias IPs (10.100.100.100/32) on GCP instances</li>
+                  <li>Install FRR on GCP VMs; apply config template with Cloud Router peer IP</li>
+                  <li>Validate GCP BGP peer <code>Established</code></li>
+                  <li>Add AWS and GCP Edge Resolvers to Micetro Central</li>
+                  <li>Deploy health-check script and systemd timer on all 6 VMs</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">Network Team Parallel Tasks (PM)</div>
+                <ul class="ws-items">
+                  <li>Confirm all 6 BGP peers show <code>Established</code> on Equinix Cloud Router</li>
+                  <li>Verify prefix-list is filtering correctly (no non-anycast routes received)</li>
+                  <li>Run pre-advertisement checklist with BlueCat team</li>
+                  <li>Begin BGP Scenario BGP-11 (data integrity) in parallel with deployment</li>
+                </ul>
+              </div>
+            </div>
+            <div style="padding:10px 18px 14px;border-top:1px solid var(--border)">
+              <div class="ws-col-title">End of Day 1 Gate Criteria — ALL must pass before Day 2</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+                <span class="pill pill-green">All 6 Edge Resolver VMs online</span>
+                <span class="pill pill-green">All 6 FRR BGP peers Established</span>
+                <span class="pill pill-green">All 6 nodes green in Micetro</span>
+                <span class="pill pill-green">Health scripts running on all 6 VMs</span>
+                <span class="pill pill-green">Zone transfers complete (SOA serial match)</span>
+                <span class="pill pill-amber">Network team: advertisement runbook signed off</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WORKSHOP DAY 2 -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-calendar-day"></i> Day 2 — BGP Advertisement, Testing & Validation</div>
+
+          <div class="ws-card">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-purple">All Teams (Joint)</span>
+              <span class="ws-title">Session 2A: BGP Advertisement Go-Live & Basic Validation</span>
+              <span class="pill pill-amber" style="margin-left:auto">09:00–10:30</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Steps (sequential)</div>
+                <ul class="ws-items">
+                  <li>Network team executes advertisement runbook: Equinix router begins propagating 10.100.100.100/32 to all Market VRFs</li>
+                  <li>BlueCat team confirms VIP appears in Equinix route table (coordinate with network)</li>
+                  <li>IP team updates one test DHCP scope per cloud to point to 10.100.100.100</li>
+                  <li>Execute BGP-01 (equal-cost anycast) — confirm all 3 cloud regions resolve locally</li>
+                  <li>Execute BGP-11 (data integrity) — confirm SOA serial match across all 6 nodes</li>
+                  <li>10-minute observation window — monitor Micetro dashboards, DNS query logs</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">Go / No-Go Criteria</div>
+                <ul class="ws-items">
+                  <li>DNS resolution succeeds from all 3 cloud test clients</li>
+                  <li>No SERVFAIL in 10-minute observation window</li>
+                  <li>Micetro: all 6 servers <span class="pill pill-green">green</span></li>
+                  <li>Network team: confirms route present in Equinix BGP table with 6 equal-cost paths</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="ws-card">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-purple">Network + BlueCat</span>
+              <span class="ws-title">Session 2B: Failover & Traffic Engineering Scenarios</span>
+              <span class="pill pill-amber" style="margin-left:auto">10:30–14:00</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Scenarios to Execute</div>
+                <ul class="ws-items">
+                  <li>BGP-02: Single node FRR stop — convergence timing</li>
+                  <li>BGP-03: AS-path prepending — Azure preference validation</li>
+                  <li>BGP-04: Full Azure CSP outage — failover to AWS/GCP</li>
+                  <li>BGP-05: Health-based auto-withdrawal</li>
+                  <li>BGP-10: BGP auth + prefix filtering (security)</li>
+                  <li>Document results: convergence times, client impact, log entries</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">IP Team Parallel (AM)</div>
+                <ul class="ws-items">
+                  <li>BGP-06: ECS regional VIP geo-steering validation</li>
+                  <li>BGP-07: Phased rollout community testing (NA Market only)</li>
+                  <li>BGP-09: Rate limiting configuration & DDoS simulation</li>
+                  <li>Packet captures on Windows 11 test clients (Wireshark / netsh ETW)</li>
+                  <li>Validate conditional DNS via DHCP client class</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="ws-card">
+            <div class="ws-header">
+              <span class="ws-tag ws-tag-amber">All Teams (Joint)</span>
+              <span class="ws-title">Session 2C: Rollback Test & POC Wrap-Up</span>
+              <span class="pill pill-amber" style="margin-left:auto">14:00–17:00</span>
+            </div>
+            <div class="ws-body">
+              <div>
+                <div class="ws-col-title">Tasks</div>
+                <ul class="ws-items">
+                  <li>Execute BGP-08: full emergency rollback to AD DNS — time the operation</li>
+                  <li>Restore BlueCat anycast after rollback test</li>
+                  <li>Capture all BGP test results in workshop report template</li>
+                  <li>Document any gaps, issues, or configuration changes discovered</li>
+                  <li>Agree on production readiness checklist items still outstanding</li>
+                  <li>Network team: document Equinix VRF configuration for production handover</li>
+                </ul>
+              </div>
+              <div>
+                <div class="ws-col-title">Deliverables</div>
+                <ul class="ws-items">
+                  <li>Completed BGP test results matrix (all 11 scenarios)</li>
+                  <li>Rollback time documented (target ≤15 min)</li>
+                  <li>Open issues list with owners and ETA</li>
+                  <li>Go/No-Go recommendation for production phased rollout</li>
+                  <li>Updated JIRA tasks (DNS-LAB-301 through DNS-LAB-305)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JIRA TASKS SUMMARY -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-list-check"></i> JIRA Epic Summary — DNS-LAB-300 (BlueCat)</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Task ID</th><th>Title</th><th>Owner Team</th><th>Status</th><th>Dependencies</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">DNS-LAB-301</td><td>Deploy MDDS hidden masters in Equinix</td><td><span class="pill pill-cyan">BlueCat</span></td><td><span class="pill pill-amber">In Progress</span></td><td>Equinix VM, license</td></tr>
+                <tr><td class="mono">DNS-LAB-302</td><td>Provision Edge Resolver Service Points v4 in all 3 clouds</td><td><span class="pill pill-cyan">BlueCat</span> + <span class="pill pill-blue">Cloud/IP</span></td><td><span class="pill pill-amber">In Progress</span></td><td>DNS-LAB-301, TF baseline</td></tr>
+                <tr><td class="mono">DNS-LAB-303</td><td>Configure anycast VIP, FRR/BGP, health checks on Edge Resolvers</td><td><span class="pill pill-cyan">BlueCat</span> + <span class="pill pill-purple">Network</span></td><td><span class="pill pill-blue">Planned</span></td><td>DNS-LAB-302, Equinix peer IPs</td></tr>
+                <tr><td class="mono">DNS-LAB-304</td><td>Enable cloud-native zone discovery and AD integration in Micetro</td><td><span class="pill pill-cyan">BlueCat</span> + <span class="pill pill-green">IP Team</span></td><td><span class="pill pill-blue">Planned</span></td><td>DNS-LAB-301, SA accounts</td></tr>
+                <tr><td class="mono">DNS-LAB-305</td><td>Execute BGP scenarios, Micetro console validation, failover testing</td><td>All Teams</td><td><span class="pill pill-blue">Planned</span></td><td>DNS-LAB-303, Day 2 advertisement</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ESCALATION & CONTACTS -->
+        <div class="subsection">
+          <div class="subsection-title"><i class="fa-solid fa-phone"></i> Escalation Contacts & Tool Access</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Role</th><th>Responsibility</th><th>Escalation Trigger</th><th>Tool / System Access Needed</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="pill pill-cyan">BlueCat Team Lead</span></td>
+                  <td style="color:var(--dim)">MDDS, Edge Resolver, Micetro architecture</td>
+                  <td style="color:var(--dim);font-size:12px">BlueCat license issues, Edge Resolver feature questions, Micetro sync failures</td>
+                  <td style="color:var(--dim);font-size:12px">Micetro Central console, all 6 Edge VM SSH, MDDS admin UI, BlueCat support portal</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-green">IP / EfficientIP Team Lead</span></td>
+                  <td style="color:var(--dim)">IPAM, DHCP, RBAC, SOLIDserver parallel POC</td>
+                  <td style="color:var(--dim);font-size:12px">DHCP scope conflicts, RBAC permission errors, cloud service account issues</td>
+                  <td style="color:var(--dim);font-size:12px">Azure Portal / AWS Console / GCP Console, Key Vault / Secrets Manager, AD Users & Computers, Micetro RBAC admin</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-purple">Network Team Lead</span></td>
+                  <td style="color:var(--dim)">Equinix Fabric, BGP, VRF, Market isolation</td>
+                  <td style="color:var(--dim);font-size:12px">BGP session failures, route leakage, VC connectivity issues, Equinix portal access</td>
+                  <td style="color:var(--dim);font-size:12px">Equinix Fabric portal, Cloud Router CLI, Equinix NOC contact, cloud route table access per CSP</td>
+                </tr>
+                <tr>
+                  <td><span class="pill pill-blue">Cloud / Platform Lead</span></td>
+                  <td style="color:var(--dim)">IaC, Terraform, cloud networking, VM provisioning</td>
+                  <td style="color:var(--dim);font-size:12px">Terraform errors, secondary IP assignment failures, cloud quota limits</td>
+                  <td style="color:var(--dim);font-size:12px">Terraform state, cloud CLI (az/aws/gcloud), cloud service accounts with Contributor / Admin roles</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </div><!-- /tab-workshop -->
+
+  </main>
+</div><!-- /layout -->
+
+<!-- FOOTER -->
+<footer style="background:var(--surface);border-top:1px solid var(--border);padding:20px 60px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)">
+  <div style="font-family:'IBM Plex Mono',monospace">QSR Restaurant Co. · Global Technology Infrastructure Operations</div>
+  <div style="font-family:'IBM Plex Mono',monospace">BlueCat MDDS + Edge Resolver Master Workshop Report · v1.0 · POC</div>
+  <div style="font-family:'IBM Plex Mono',monospace">Azure East US 2 · AWS us-east-2 · GCP us-east4 · Equinix Fabric</div>
+</footer>
+
+<script>
+// Tab switching
+function showTab(tabId) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+  const panel = document.getElementById('tab-' + tabId);
+  if (panel) panel.classList.add('active');
+}
+
+// Sidebar active link highlighting
+document.querySelectorAll('.toc-link').forEach(link => {
+  link.addEventListener('click', function() {
+    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Tab nav (inline - build dynamically)
+const tabs = [
+  {id:'overview', label:'Overview', icon:'fa-map'},
+  {id:'inventory', label:'Server Inventory', icon:'fa-server'},
+  {id:'impl', label:'Implementation', icon:'fa-rocket'},
+  {id:'bgp', label:'BGP Scenarios', icon:'fa-flask-vial'},
+  {id:'workshop', label:'Workshop Materials', icon:'fa-chalkboard-user'}
+];
+
+// Insert tab nav into each main section header area
+const mainContent = document.querySelector('.main-content');
+const tabNav = document.createElement('div');
+tabNav.className = 'tab-nav no-print';
+tabs.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn' + (t.id === 'overview' ? ' active' : '');
+  btn.innerHTML = `<i class="fa-solid ${t.icon}"></i> ${t.label}`;
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showTab(t.id);
+  };
+  tabNav.appendChild(btn);
+});
+mainContent.insertBefore(tabNav, mainContent.firstChild);
+
+console.log('%c✅ QSR BlueCat MDDS + Edge Resolver Master Workshop Report v1.0 loaded.', 'color:#00d4ff;font-weight:600');
+</script>
+</body>
+</html>
