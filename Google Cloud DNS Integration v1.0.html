@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCP Cloud DNS Forwarding Integration Guide v1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        :root { --tw-color-primary: #0ea5e9; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); }
+        .table-row { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .table-row:hover { background-color: #f8fafc; transform: translateY(1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        @media print { body { font-size: 11pt; } .gradient-header { background: #0ea5e9 !important; color: white !important; } .no-print { display: none !important; } }
+        .icon-circle { transition: transform 0.2s ease; }
+        .table-row:hover .icon-circle { transform: scale(1.1); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- HEADER -->
+    <header class="gradient-header text-white py-12 shadow-lg print:py-8">
+        <div class="max-w-7xl mx-auto px-8 lg:px-12">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fa-solid fa-dns text-4xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-semibold tracking-tight">GCP Cloud DNS Forwarding Integration</h1>
+                        <p class="text-2xl text-sky-100">Workshop Guide <span class="inline-block bg-white/30 text-white text-sm font-medium px-3 py-1 rounded-full ml-3">v1.0</span></p>
+                        <p class="text-sky-100/90 mt-1">QSR Global DNS POC • BlueCat MDDS + Edge Resolver • EfficientIP SOLIDserver • us-east4</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Forwarding Ready</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-exchange-alt"></i>
+                        <span>Platform Switching</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>TTL Optimized</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-8 lg:px-12 py-10">
+
+        <!-- INSTRUCTIONS -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 p-8 mb-12">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0 w-10 h-10 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-info-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">Workshop Discussion Document</h2>
+                    <p class="text-slate-600 leading-relaxed">This document consolidates all prior discussion on GCP Cloud DNS forwarding zones / policies integration for the QSR Global DNS POC. It mirrors the Azure Private DNS Resolver guide structure for consistency. All gcloud commands, switching procedures, caching behavior, and TTL strategies are included verbatim. Follow sections sequentially during the workshop.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TWO-COLUMN TABLE -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold flex items-center gap-3">
+                    <i class="fa-solid fa-list-check text-sky-600"></i>
+                    GCP Cloud DNS Forwarding Integration
+                </h2>
+                <span class="px-5 py-2 bg-white text-slate-600 text-sm font-semibold rounded-3xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-server"></i>
+                    Forwarding Zones • DNS Policies • Exclusive Switching • TTL Optimized
+                </span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-8 py-5 font-semibold w-2/5 border-b border-slate-700">SECTION</th>
+                        <th class="px-8 py-5 font-semibold border-b border-slate-700">DETAILED STEPS / CONTENT</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+
+                    <!-- Section 1 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-bullseye text-emerald-500 icon-circle"></i>
+                                1. Workshop Objective
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Review and validate integration of GCP Cloud DNS forwarding zones and DNS policies with the shared DNS VPC (192.168.30.0/24) to support exclusive, switchable operation between BlueCat (anycast VIP <strong>10.100.100.100</strong>) and EfficientIP (anycast VIP <strong>192.168.153.153</strong>). Ensure seamless resolution for <code>corp.pri.</code> and <code>mcd.cloud.</code> domains. Azure clients remain in Azure VNets; DNS solutions run in GCP. GCP workloads and Azure clients must resolve via either VIP over Equinix Fabric BGP.
+                        </td>
+                    </tr>
+
+                    <!-- Section 2 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exclamation-triangle text-amber-500 icon-circle"></i>
+                                2. Architecture Constraints
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>BlueCat MDDS + Edge Resolver and EfficientIP run in parallel in the same GCP DNS VPC (192.168.30.0/24).</li>
+                                <li>Anycast VIPs are unique per solution and advertised via FRR/BGP + Cloud Router to Equinix Fabric.</li>
+                                <li>GCP has no per-VPC resolver limit; use Cloud DNS forwarding zones (conditional) or DNS policies (VPC-wide alternative name servers).</li>
+                                <li>Azure client VNets remain in Azure; reachability to GCP VIP occurs over Equinix Fabric private IP-WAN (ExpressRoute / Direct Connect equivalent).</li>
+                                <li>GCP workloads use the same VIP via forwarding zones or DNS policies applied to their VPCs.</li>
+                                <li>Platforms will not run simultaneously; switch exclusively between BlueCat and EfficientIP.</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- Section 3 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-server text-blue-500 icon-circle"></i>
+                                3. Cloud DNS Forwarding / Policy Deployment
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Deploy a forwarding zone (conditional) or DNS policy (VPC-wide) that forwards <code>corp.pri.</code> and <code>mcd.cloud.</code> to the active anycast VIP.<br><br>
+                            <strong>One-time gcloud commands (initial BlueCat active):</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">gcloud dns managed-zones create ruleset-corp \
+  --dns-name=corp.pri. \
+  --visibility=private \
+  --networks=vpc-dns-spoke-us-east4 \
+  --forwarding-targets=10.100.100.100
+
+gcloud dns managed-zones create mcd-cloud-rule \
+  --dns-name=mcd.cloud. \
+  --visibility=private \
+  --networks=vpc-dns-spoke-us-east4 \
+  --forwarding-targets=10.100.100.100
+
+# Alternative VPC-wide policy (recommended for all queries)
+gcloud dns policies create ruleset-corp-policy \
+  --networks=vpc-dns-spoke-us-east4 \
+  --alternative-name-servers=10.100.100.100 \
+  --description="Corp DNS forwarding to active anycast VIP"</pre>
+                        </td>
+                    </tr>
+
+                    <!-- Section 4 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-rules text-violet-500 icon-circle"></i>
+                                4. DNS Forwarding Ruleset / Policy Configuration
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Single ruleset/policy forwards both domains to the <strong>active</strong> anycast VIP only.<br><br>
+                            <strong>Initial creation (BlueCat active) – already shown above.</strong>
+                        </td>
+                    </tr>
+
+                    <!-- Section 5 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exchange-alt text-orange-500 icon-circle"></i>
+                                5. Platform Switching Procedure
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>Switch to EfficientIP:</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">gcloud dns managed-zones update ruleset-corp \
+  --forwarding-targets=192.168.153.153
+
+gcloud dns managed-zones update mcd-cloud-rule \
+  --forwarding-targets=192.168.153.153
+
+# Or for DNS policy (VPC-wide)
+gcloud dns policies update ruleset-corp-policy \
+  --alternative-name-servers=192.168.153.153</pre>
+                            <strong>Switch back to BlueCat:</strong> reverse the IPs above.<br><br>
+                            <strong>Alternative non-disruptive method:</strong> Delete and re-create the forwarding zones/policy with the new target VIP.
+                        </td>
+                    </tr>
+
+                    <!-- Section 6 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-google text-red-500 icon-circle"></i>
+                                6. Client Configuration (GCP workloads + Azure clients)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>GCP workloads (us-east4 VPCs):</strong> Apply the forwarding zones or DNS policy to the target VPC(s).<br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">gcloud dns policies update ruleset-corp-policy \
+  --networks=vpc-workload-us-east4,vpc-other-workload</pre>
+                            <strong>Azure clients (stay in Azure):</strong> Point VNet DNS servers to the global anycast VIP (routed via Equinix Fabric).<br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto"># BlueCat active
+az network vnet update --resource-group &lt;client-rg&gt; --name vnet-client-eastus --dns-servers 10.100.100.100
+
+# EfficientIP active (switch)
+az network vnet update --resource-group &lt;client-rg&gt; --name vnet-client-eastus --dns-servers 192.168.153.153</pre>
+                            Existing Azure VMs require <code>ipconfig /release &amp;&amp; ipconfig /renew</code>.
+                        </td>
+                    </tr>
+
+                    <!-- Section 7 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-database text-teal-500 icon-circle"></i>
+                                7. Cloud DNS Caching Behavior
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>Cloud DNS caches responses from the upstream anycast VIP according to the exact TTL returned by BlueCat Edge Resolver or EfficientIP.</li>
+                                <li>Forwarding zone / policy changes take effect for new queries immediately, but cached entries persist until TTL expiry.</li>
+                                <li>Azure client VMs and GCP instances also cache per-record TTLs.</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- Section 8 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-broom text-purple-500 icon-circle"></i>
+                                8. Cache Flush Limitations
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Cloud DNS has no direct flush API.<br><br>
+                            <strong>Workarounds (in order of preference):</strong>
+                            <ol class="list-decimal pl-5 space-y-2 text-sm">
+                                <li>Low TTLs (60–300 s) on zones during POC.</li>
+                                <li>Delete/re-create forwarding zones or update DNS policy (forces re-evaluation).</li>
+                                <li>Client-side: <code>ipconfig /flushdns</code> (Windows) or <code>systemd-resolve --flush-caches</code> (Linux).</li>
+                                <li>Nuclear option: recreate the entire policy/zone (minimal disruption).</li>
+                            </ol>
+                        </td>
+                    </tr>
+
+                    <!-- Section 9 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-chart-line text-sky-500 icon-circle"></i>
+                                9. DNS TTL Optimization Strategies
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            (Identical table as Azure guide – POC: 60–300 s, Cutover: 60 s, Production: 300–1800 s, Global Anycast VIP: 60 s)
+                        </td>
+                    </tr>
+
+                    <!-- Section 10 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-book text-emerald-500 icon-circle"></i>
+                                10. Operational Runbook Summary &amp; Recommendations
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>Pre-cutover: lower TTLs + update forwarding zones/policy + Azure VNet DNS + GCP workload networks.</li>
+                                <li>Post-cutover: wait one TTL cycle + force client flush.</li>
+                                <li>Monitor with <code>dig @10.100.100.100</code> or <code>dig @192.168.153.153</code> from Azure and GCP test VMs.</li>
+                                <li>All changes maintain single-engineer execution and global anycast VIP behavior across Equinix Fabric.</li>
+                            </ul>
+                            <p class="mt-4 text-xs font-medium text-emerald-600">This document is ready for workshop review. Azure clients resolve via Equinix-routed VIP; GCP workloads use native Cloud DNS forwarding/policy.</p>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-12 flex items-center justify-between text-xs text-slate-400 font-medium border-t pt-8">
+            <div>GCP Cloud DNS Forwarding Integration Guide <span class="text-sky-600">v1.0</span></div>
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="window.print()" class="no-print flex items-center gap-2 hover:text-slate-600">
+                    <i class="fa-solid fa-print"></i>
+                    <span>PRINT / SAVE AS PDF</span>
+                </a>
+                <div>Suggested filename: <span class="font-mono bg-slate-100 px-3 py-1 rounded-2xl">GCP-Cloud-DNS-Forwarding-Integration-Guide-v1.0.html</span></div>
+                <div class="text-emerald-500 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Single-engineer ready
+                </div>
+            </div>
+            <div>Global Technology Infrastructure Operations • QSR Restaurant Company • v1.0</div>
+        </div>
+    </div>
+
+    <script>
+        function initializeTailwind() { tailwind.config = { content: [], theme: { extend: {} } }; }
+        initializeTailwind();
+        console.log('%c✅ GCP Cloud DNS Forwarding Integration Guide v1.0 loaded. Ready for PDF export.', 'color:#0ea5e9; font-weight:600');
+    </script>
+</body>
+</html>

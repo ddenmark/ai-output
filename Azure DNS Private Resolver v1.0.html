@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure DNS Private Resolver Integration Guide v1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        
+        :root {
+            --tw-color-primary: #0ea5e9;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+        }
+        
+        .table-row {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .table-row:hover {
+            background-color: #f8fafc;
+            transform: translateY(1px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        @media print {
+            body {
+                font-size: 11pt;
+                line-height: 1.4;
+                color: #111827;
+                background: white;
+            }
+            .gradient-header {
+                background: #0ea5e9 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .no-print {
+                display: none !important;
+            }
+            table, th, td {
+                border: 1px solid #64748b !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .table-row:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            pre, code {
+                white-space: pre-wrap;
+                font-size: 9pt;
+            }
+        }
+        
+        .icon-circle {
+            transition: transform 0.2s ease;
+        }
+        
+        .table-row:hover .icon-circle {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- HEADER -->
+    <header class="gradient-header text-white py-12 shadow-lg print:py-8">
+        <div class="max-w-7xl mx-auto px-8 lg:px-12">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fa-solid fa-dns text-4xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-semibold tracking-tight">Azure DNS Private Resolver Integration</h1>
+                        <p class="text-2xl text-sky-100">Workshop Guide <span class="inline-block bg-white/30 text-white text-sm font-medium px-3 py-1 rounded-full ml-3">v1.0</span></p>
+                        <p class="text-sky-100/90 mt-1">QSR Global DNS POC • BlueCat MDDS + Edge Resolver • EfficientIP SOLIDserver • East US 2</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Single Resolver Ready</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-exchange-alt"></i>
+                        <span>Platform Switching</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>TTL Optimized</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-8 lg:px-12 py-10">
+
+        <!-- INSTRUCTIONS -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 p-8 mb-12">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0 w-10 h-10 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-info-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">Workshop Discussion Document</h2>
+                    <p class="text-slate-600 leading-relaxed">This document consolidates all prior discussion on Azure DNS Private Resolver integration for the QSR Global DNS POC. It is structured as a clean two-column table for quick reference and easy printing. All Azure CLI commands, switching procedures, caching behavior, and TTL strategies are included verbatim. Follow sections sequentially during the workshop.</p>
+                    <div class="mt-4 text-xs font-medium flex items-center gap-2 text-slate-500">
+                        <i class="fa-solid fa-print"></i>
+                        Optimized for PDF export • Landscape recommended • Tailwind CSS v3.4+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TWO-COLUMN TABLE -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold flex items-center gap-3">
+                    <i class="fa-solid fa-list-check text-sky-600"></i>
+                    Azure DNS Private Resolver Integration
+                </h2>
+                <span class="px-5 py-2 bg-white text-slate-600 text-sm font-semibold rounded-3xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-server"></i>
+                    Single Resolver • Exclusive Switching • TTL Optimized
+                </span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-8 py-5 font-semibold w-2/5 border-b border-slate-700">SECTION</th>
+                        <th class="px-8 py-5 font-semibold border-b border-slate-700">DETAILED STEPS / CONTENT</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+
+                    <!-- Section 1 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-bullseye text-emerald-500 icon-circle"></i>
+                                1. Workshop Objective
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Review and validate the integration of a single Azure Private DNS Resolver into the shared DNS VNet (192.168.16.0/24) to support exclusive, switchable operation between BlueCat (anycast VIP <strong>192.168.53.53</strong>) and EfficientIP SOLIDserver (anycast VIP <strong>192.168.153.153</strong>). Ensure seamless resolution for <code>corp.pri.</code> and <code>mcd.cloud.</code> domains while maintaining global anycast behavior across Equinix Fabric.
+                        </td>
+                    </tr>
+
+                    <!-- Section 2 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exclamation-triangle text-amber-500 icon-circle"></i>
+                                2. Architecture Constraints
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>Both BlueCat MDDS + Edge Resolver and EfficientIP SOLIDserver run <strong>in parallel</strong> in the <strong>same DNS VNet</strong> (192.168.16.0/24).</li>
+                                <li>Anycast VIPs are <strong>unique per solution</strong>: BlueCat = 192.168.53.53; EfficientIP = 192.168.153.153.</li>
+                                <li>Azure <strong>does not</strong> allow more than <strong>one</strong> Private DNS Resolver per Virtual Network.</li>
+                                <li>Client VNets exist in two regions: East (192.168.4.0/24) and Central (192.168.5.0/24).</li>
+                                <li>Azure VNet DNS server settings (<code>dns_servers</code>) are configured <strong>only at the VNet level</strong> — there is <strong>no per-subnet override</strong>.</li>
+                                <li>Platforms will <strong>not</strong> run simultaneously; we switch <strong>exclusively</strong> between BlueCat and EfficientIP.</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- Section 3 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-server text-blue-500 icon-circle"></i>
+                                3. Private DNS Resolver Deployment
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            A <strong>single shared Private DNS Resolver</strong> is deployed in the DNS spoke VNet. It provides inbound/outbound endpoints and a forwarding ruleset. Dedicated /28 subnets are carved from the existing 192.168.16.0/20 address space.<br><br>
+                            <strong>One-time Azure CLI commands:</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">az network vnet subnet create --resource-group rg-bluecat-dns-prod-eastus2 --vnet-name vnet-dns-spoke-eastus2 --name snet-dns-inbound --address-prefixes 192.168.16.240/28 --delegations Microsoft.Network/dnsResolvers
+az network vnet subnet create --resource-group rg-bluecat-dns-prod-eastus2 --vnet-name vnet-dns-spoke-eastus2 --name snet-dns-outbound --address-prefixes 192.168.16.224/28 --delegations Microsoft.Network/dnsResolvers
+
+az dns resolver create --resource-group rg-bluecat-dns-prod-eastus2 --name dnspr-bluecat-eastus2 --location eastus2 --virtual-network vnet-dns-spoke-eastus2
+az dns resolver inbound-endpoint create --resource-group rg-bluecat-dns-prod-eastus2 --dns-resolver-name dnspr-bluecat-eastus2 --name inbound-ep --subnet snet-dns-inbound --ip-configurations private-ip-address=192.168.16.4
+az dns resolver outbound-endpoint create --resource-group rg-bluecat-dns-prod-eastus2 --dns-resolver-name dnspr-bluecat-eastus2 --name outbound-ep --subnet snet-dns-outbound</pre>
+                        </td>
+                    </tr>
+
+                    <!-- Section 4 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-rules text-violet-500 icon-circle"></i>
+                                4. DNS Forwarding Ruleset Configuration
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            A single ruleset (<code>ruleset-corp</code>) forwards <code>corp.pri.</code> and <code>mcd.cloud.</code> to the <strong>active</strong> anycast VIP only.<br><br>
+                            <strong>Initial creation (BlueCat active):</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">az dns resolver forwarding-ruleset create --resource-group rg-bluecat-dns-prod-eastus2 --name ruleset-corp --location eastus2 --dns-resolver-name dnspr-bluecat-eastus2
+
+az dns resolver forwarding-rule create --resource-group rg-bluecat-dns-prod-eastus2 --ruleset-name ruleset-corp --name corp-pri-rule --domain-name corp.pri. --target-dns-servers ip-address=192.168.53.53 port=53
+az dns resolver forwarding-rule create --resource-group rg-bluecat-dns-prod-eastus2 --ruleset-name ruleset-corp --name mcd-cloud-rule --domain-name mcd.cloud. --target-dns-servers ip-address=192.168.53.53 port=53</pre>
+                        </td>
+                    </tr>
+
+                    <!-- Section 5 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exchange-alt text-orange-500 icon-circle"></i>
+                                5. Platform Switching Procedure
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>Switch to EfficientIP:</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">az dns resolver forwarding-rule update --resource-group rg-bluecat-dns-prod-eastus2 --ruleset-name ruleset-corp --name corp-pri-rule --target-dns-servers ip-address=192.168.153.153 port=53
+az dns resolver forwarding-rule update --resource-group rg-bluecat-dns-prod-eastus2 --ruleset-name ruleset-corp --name mcd-cloud-rule --target-dns-servers ip-address=192.168.153.153 port=53</pre>
+                            <strong>Switch back to BlueCat:</strong> reverse the IPs above.<br><br>
+                            <strong>Alternative non-disruptive method:</strong> Delete and re-create the two rules using the target VIP for the new platform.
+                        </td>
+                    </tr>
+
+                    <!-- Section 6 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-microsoft text-blue-500 icon-circle"></i>
+                                6. Client VNet DNS Server Configuration
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Update both client VNets (East and Central) to point <strong>exclusively</strong> to the active VIP.<br><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto"># BlueCat active
+az network vnet update --resource-group &lt;client-rg&gt; --name vnet-client-eastus --dns-servers 192.168.53.53
+az network vnet update --resource-group &lt;client-rg&gt; --name vnet-client-centralus --dns-servers 192.168.53.53
+
+# EfficientIP active (switch)
+az network vnet update --resource-group &lt;client-rg&gt; --name vnet-client-eastus --dns-servers 192.168.153.153
+az network vnet update --resource-group &lt;client-rg&gt; --name vnet-client-centralus --dns-servers 192.168.153.153</pre>
+                            Existing VMs require <code>ipconfig /release &amp;&amp; ipconfig /renew</code> (Windows) or NetworkManager restart (Linux).
+                        </td>
+                    </tr>
+
+                    <!-- Section 7 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-database text-teal-500 icon-circle"></i>
+                                7. Azure DNS Caching Behavior
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>Azure Private DNS Resolver caches responses from the upstream anycast VIP according to the exact TTL returned by BlueCat Edge Resolver or EfficientIP.</li>
+                                <li>Ruleset changes take effect for <strong>new</strong> queries immediately, but cached entries persist until TTL expiry.</li>
+                                <li>Client VMs (Windows/Linux) also cache per-record TTLs and negative responses.</li>
+                                <li>VNet <code>dns_servers</code> changes affect new DHCP leases only.</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- Section 8 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-broom text-purple-500 icon-circle"></i>
+                                8. Cache Flush Limitations
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            There is <strong>no supported CLI, PowerShell, or API method</strong> to flush the Private DNS Resolver cache.<br><br>
+                            <strong>Workarounds (in order of preference):</strong>
+                            <ol class="list-decimal pl-5 space-y-2 text-sm">
+                                <li>Low TTLs (60–300 s) on zones during POC.</li>
+                                <li>Delete/re-create forwarding rules (forces re-evaluation).</li>
+                                <li>Client-side: <code>ipconfig /flushdns &amp;&amp; ipconfig /release &amp;&amp; ipconfig /renew</code>.</li>
+                                <li>Nuclear option: delete/recreate the entire resolver (2–5 min disruption).</li>
+                            </ol>
+                        </td>
+                    </tr>
+
+                    <!-- Section 9 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-chart-line text-sky-500 icon-circle"></i>
+                                9. DNS TTL Optimization Strategies
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <table class="w-full text-xs border border-slate-200">
+                                <thead class="bg-slate-100"><tr><th class="px-3 py-2 text-left">Phase</th><th class="px-3 py-2 text-left">Zone / Record TTL</th><th class="px-3 py-2 text-left">SOA Minimum</th><th class="px-3 py-2 text-left">Negative Cache TTL</th><th class="px-3 py-2 text-left">Rationale</th></tr></thead>
+                                <tbody>
+                                    <tr><td class="px-3 py-2 border-t">POC / Testing</td><td class="px-3 py-2 border-t">60–300 seconds</td><td class="px-3 py-2 border-t">60 s</td><td class="px-3 py-2 border-t">30 s</td><td class="px-3 py-2 border-t">Sub-5-minute cache expiry for rapid switching</td></tr>
+                                    <tr><td class="px-3 py-2">Cutover Window</td><td class="px-3 py-2">60 seconds</td><td class="px-3 py-2">60 s</td><td class="px-3 py-2">30 s</td><td class="px-3 py-2">Minimizes stale resolution</td></tr>
+                                    <tr><td class="px-3 py-2">Steady-State Production</td><td class="px-3 py-2">300–1800 seconds</td><td class="px-3 py-2">300 s</td><td class="px-3 py-2">60–300 s</td><td class="px-3 py-2">Balances load for 48,000 restaurants</td></tr>
+                                    <tr><td class="px-3 py-2">Global Anycast VIP</td><td class="px-3 py-2">60 seconds</td><td class="px-3 py-2">–</td><td class="px-3 py-2">–</td><td class="px-3 py-2">Fast BGP health-based withdrawal</td></tr>
+                                </tbody>
+                            </table>
+                            <p class="text-xs mt-3"><strong>Implementation:</strong> Apply via BlueCat Micetro (Zone Properties) or EfficientIP TTL policy. Use low-TTL windows only during planned maintenance.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Section 10 -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-book text-emerald-500 icon-circle"></i>
+                                10. Operational Runbook Summary &amp; Recommendations
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>Pre-cutover: lower TTLs + update resolver rules + client VNets.</li>
+                                <li>Post-cutover: wait one TTL cycle + force client flush.</li>
+                                <li>Monitor with <code>dig @192.168.53.53</code> or <code>dig @192.168.153.153</code>.</li>
+                                <li>All changes maintain the single-engineer execution model and global anycast VIP behavior across Equinix Fabric.</li>
+                            </ul>
+                            <p class="mt-4 text-xs font-medium text-emerald-600">This document is ready for workshop review. All prior discussion details are retained verbatim.</p>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-12 flex items-center justify-between text-xs text-slate-400 font-medium border-t pt-8">
+            <div>Azure DNS Private Resolver Integration Guide <span class="text-sky-600">v1.0</span></div>
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="window.print()" class="no-print flex items-center gap-2 hover:text-slate-600">
+                    <i class="fa-solid fa-print"></i>
+                    <span>PRINT / SAVE AS PDF</span>
+                </a>
+                <div>Suggested filename: <span class="font-mono bg-slate-100 px-3 py-1 rounded-2xl">Azure-DNS-Private-Resolver-Integration-Guide-v1.0.html</span></div>
+                <div class="text-emerald-500 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Single-engineer ready
+                </div>
+            </div>
+            <div>Global Technology Infrastructure Operations • QSR Restaurant Company • v1.0</div>
+        </div>
+    </div>
+
+    <script>
+        function initializeTailwind() {
+            tailwind.config = { content: [], theme: { extend: {} } };
+        }
+        initializeTailwind();
+        console.log('%c✅ Azure DNS Private Resolver Integration Guide v1.0 loaded. Ready for PDF export.', 'color:#0ea5e9; font-weight:600');
+    </script>
+</body>
+</html>

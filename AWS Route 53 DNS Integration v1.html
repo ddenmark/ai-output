@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Route 53 Resolver Integration Guide v1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        :root { --tw-color-primary: #0ea5e9; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); }
+        .table-row { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .table-row:hover { background-color: #f8fafc; transform: translateY(1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        @media print { body { font-size: 11pt; } .gradient-header { background: #0ea5e9 !important; color: white !important; } .no-print { display: none !important; } }
+        .icon-circle { transition: transform 0.2s ease; }
+        .table-row:hover .icon-circle { transform: scale(1.1); }
+        .note { background: #ecfdf5; border-left: 4px solid #10b981; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- HEADER -->
+    <header class="gradient-header text-white py-12 shadow-lg print:py-8">
+        <div class="max-w-7xl mx-auto px-8 lg:px-12">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fa-solid fa-dns text-4xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-semibold tracking-tight">AWS Route 53 Resolver Integration</h1>
+                        <p class="text-2xl text-sky-100">Workshop Guide <span class="inline-block bg-white/30 text-white text-sm font-medium px-3 py-1 rounded-full ml-3">v1.0</span></p>
+                        <p class="text-sky-100/90 mt-1">QSR Global DNS POC • BlueCat MDDS + Edge Resolver • EfficientIP SOLIDserver • us-east-2</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Resolver Rules Ready</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-exchange-alt"></i>
+                        <span>Platform Switching</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>TTL Optimized</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-8 lg:px-12 py-10">
+
+        <!-- INSTRUCTIONS -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 p-8 mb-12">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0 w-10 h-10 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-info-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">Workshop Discussion Document</h2>
+                    <p class="text-slate-600 leading-relaxed">This document mirrors the Azure Private DNS Resolver and Google Cloud DNS Forwarding guides. It provides copy-paste-ready AWS CLI commands for Route 53 Resolver rules, platform switching, caching behavior, and operational runbook. Follow sections sequentially.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TWO-COLUMN TABLE -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold flex items-center gap-3">
+                    <i class="fa-solid fa-list-check text-sky-600"></i>
+                    AWS Route 53 Resolver Integration
+                </h2>
+                <span class="px-5 py-2 bg-white text-slate-600 text-sm font-semibold rounded-3xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-server"></i>
+                    Resolver Rules • Forwarding • Exclusive Switching • TTL Optimized
+                </span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-8 py-5 font-semibold w-2/5 border-b border-slate-700">SECTION</th>
+                        <th class="px-8 py-5 font-semibold border-b border-slate-700">DETAILED STEPS / CONTENT</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+
+                    <!-- 1. Objective -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-bullseye text-emerald-500 icon-circle"></i>
+                                1. Workshop Objective
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Validate AWS Route 53 Resolver integration with the shared DNS VPC (192.168.20.0/24) for exclusive, switchable operation between BlueCat anycast VIP (<strong>10.100.100.100</strong>) and EfficientIP anycast VIP (<strong>192.168.153.153</strong>). Azure/GCP clients remain in their respective clouds; AWS workloads and intra-VPC test EC2 instances use Route 53 Resolver rules. All traffic routes via Equinix Fabric + TGW.
+                        </td>
+                    </tr>
+
+                    <!-- 2. AWS Route 53 Resolver Concepts -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-info-circle text-blue-500 icon-circle"></i>
+                                2. AWS Route 53 Resolver Concepts
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="note p-6 rounded-2xl mb-6">
+                                <strong>Route 53 Resolver Rules</strong> provide conditional forwarding for specific domains (corp.pri., mcd.cloud.) to target IP addresses (anycast VIPs). Rules are associated to one or more VPCs.
+                                <ul class="list-disc pl-5 space-y-1 text-sm mt-3">
+                                    <li><strong>Resolver Rules</strong>: Forwarding equivalent to Azure forwarding rulesets or GCP forwarding zones.</li>
+                                    <li><strong>Target IP</strong>: Any private IP reachable via VPC or TGW (BlueCat/EfficientIP anycast VIPs).</li>
+                                    <li>Caching follows exact TTL from upstream. Rule changes are immediate for new queries.</li>
+                                    <li>Reachability: Workloads in same VPC, peered VPCs, or TGW-connected VPCs resolve via Resolver rules. Azure/GCP clients reach VIPs via Equinix Fabric.</li>
+                                </ul>
+                            </div>
+                            <strong>Recommendation for POC</strong>: Use Resolver rules for precision and simplicity across all AWS workloads.
+                        </td>
+                    </tr>
+
+                    <!-- 3. Architecture Constraints -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exclamation-triangle text-amber-500 icon-circle"></i>
+                                3. Architecture Constraints
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <ul class="list-disc pl-5 space-y-2 text-sm">
+                                <li>DNS appliances run in parallel in the DNS VPC (192.168.20.0/24); VIPs advertised via TGW + FRR/BGP to Equinix Fabric.</li>
+                                <li>AWS workloads in same VPC (different subnet) or TGW-connected VPCs use Resolver rules.</li>
+                                <li>Azure/GCP client VNets stay in their clouds; no direct VPC peering required.</li>
+                                <li>Switching is exclusive; platforms do not run simultaneously.</li>
+                            </ul>
+                        </td>
+                    </tr>
+
+                    <!-- 4. Deployment -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-server text-blue-500 icon-circle"></i>
+                                4. Route 53 Resolver Rules Deployment
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>One-time AWS CLI commands (BlueCat active):</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">aws route53resolver create-resolver-rule \
+  --name corp-pri-forward \
+  --domain-name corp.pri. \
+  --rule-type FORWARD \
+  --resolver-endpoint-id &lt;optional&gt; \
+  --target-ips Ip=10.100.100.100 \
+  --tags Key=Purpose,Value=BlueCat
+
+aws route53resolver create-resolver-rule \
+  --name mcd-cloud-forward \
+  --domain-name mcd.cloud. \
+  --rule-type FORWARD \
+  --resolver-endpoint-id &lt;optional&gt; \
+  --target-ips Ip=10.100.100.100 \
+  --tags Key=Purpose,Value=BlueCat
+
+# Associate rules with DNS spoke VPC and any client VPCs
+aws route53resolver associate-resolver-rule \
+  --resolver-rule-id &lt;rule-id-from-above&gt; \
+  --vpc-id vpc-dns-spoke-us-east-2</pre>
+                        </td>
+                    </tr>
+
+                    <!-- 5. Platform Switching -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exchange-alt text-orange-500 icon-circle"></i>
+                                5. Platform Switching Procedure
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>Switch to EfficientIP:</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">aws route53resolver update-resolver-rule \
+  --resolver-rule-id &lt;corp-pri-rule-id&gt; \
+  --target-ips Ip=192.168.153.153
+
+aws route53resolver update-resolver-rule \
+  --resolver-rule-id &lt;mcd-cloud-rule-id&gt; \
+  --target-ips Ip=192.168.153.153</pre>
+                            Reverse IPs to switch back. Alternative: delete/re-create rules.
+                        </td>
+                    </tr>
+
+                    <!-- 6. Client Configuration -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-aws text-orange-500 icon-circle"></i>
+                                6. Client Configuration
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>AWS workloads</strong>: Associate Resolver rules to target VPCs (DNS spoke + client VPCs). No per-instance DNS change required.<br>
+                            <strong>Azure/GCP clients</strong>: Update VNet/VPC DNS servers to active VIP (routed via Equinix Fabric + TGW).
+                        </td>
+                    </tr>
+
+                    <!-- 7. Windows Server Test Scenario -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-brands fa-windows text-blue-500 icon-circle"></i>
+                                7. Testing Scenario: Windows Server in DNS VPC (different subnet)
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Deploy a Windows Server 2022/2025 EC2 instance in the DNS VPC (e.g., subnet 192.168.21.0/24).<br>
+                            <strong>Steps:</strong>
+                            <ol class="list-decimal pl-5 space-y-2 text-sm">
+                                <li>Create EC2; join to corp.root domain.</li>
+                                <li>Set DNS: <code>netsh interface ip set dns "Ethernet" static 10.100.100.100</code> (BlueCat) or 192.168.153.153 (EfficientIP).</li>
+                                <li>Test: <code>nslookup www.example.com 10.100.100.100</code> and domain queries.</li>
+                                <li>Switch platform and re-test after TTL expiry + <code>ipconfig /flushdns</code>.</li>
+                            </ol>
+                        </td>
+                    </tr>
+
+                    <!-- 8. Troubleshooting -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-wrench text-rose-500 icon-circle"></i>
+                                8. AWS Route 53 Resolver Troubleshooting
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <div class="note p-6 rounded-2xl mb-6">
+                                <strong>Key Diagnostic Commands:</strong>
+                                <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">aws route53resolver list-resolver-rules
+aws route53resolver list-resolver-rule-associations
+aws route53resolver get-resolver-rule --resolver-rule-id &lt;id&gt;
+aws ec2 describe-vpcs --vpc-ids vpc-dns-spoke-us-east-2
+aws ec2 describe-route-tables --filters Name=tag:Name,Values=*dns*</pre>
+                            </div>
+                            <strong>Common Issues &amp; Resolution:</strong>
+                            <ol class="list-decimal pl-5 space-y-3 text-sm">
+                                <li><strong>Resolver rule not resolving</strong>: Verify rule association to correct VPC and target VIP reachability; re-create if needed.</li>
+                                <li><strong>BGP/TGW reachability</strong>: Confirm TGW route propagation and VIP advertisement.</li>
+                                <li><strong>Azure/GCP clients unreachable</strong>: Validate Equinix Fabric BGP and connectivity; test port 53 from Azure/GCP VM.</li>
+                                <li><strong>Stale cache after switch</strong>: Wait TTL cycle or run <code>ipconfig /flushdns</code>.</li>
+                                <li><strong>Intra-VPC Windows EC2 fails</strong>: Confirm same-VPC subnet, static/DHCP DNS, and security group rules (UDP/TCP 53).</li>
+                            </ol>
+                            <p class="text-xs mt-4"><strong>Logging:</strong> Enable Route 53 Resolver query logging or VPC Flow Logs / CloudWatch.</p>
+                        </td>
+                    </tr>
+
+                    <!-- 9-12: Caching, Flush, TTL, Runbook -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">9. AWS Route 53 Resolver Caching Behavior</td>
+                        <td class="px-8 py-8 align-top">Caches per exact TTL from upstream. Rule changes immediate for new queries.</td>
+                    </tr>
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">10. Cache Flush Limitations &amp; Workarounds</td>
+                        <td class="px-8 py-8 align-top">No direct flush; use low TTLs, delete/re-create rules, or client flush.</td>
+                    </tr>
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">11. DNS TTL Optimization Strategies</td>
+                        <td class="px-8 py-8 align-top">(Identical table as Azure/GCP guides – POC: 60–300 s, etc.)</td>
+                    </tr>
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">12. Operational Runbook Summary</td>
+                        <td class="px-8 py-8 align-top">Pre-cutover: lower TTLs + update Resolver rules. Post-cutover: wait TTL cycle + flush. Monitor with dig/nslookup from Azure, GCP, and AWS test EC2.</td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-12 flex items-center justify-between text-xs text-slate-400 font-medium border-t pt-8">
+            <div>AWS Route 53 Resolver Integration Guide <span class="text-sky-600">v1.0</span></div>
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="window.print()" class="no-print flex items-center gap-2 hover:text-slate-600">
+                    <i class="fa-solid fa-print"></i>
+                    <span>PRINT / SAVE AS PDF</span>
+                </a>
+                <div>Suggested filename: <span class="font-mono bg-slate-100 px-3 py-1 rounded-2xl">AWS-Route53-Resolver-Integration-Guide-v1.0.html</span></div>
+                <div class="text-emerald-500 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Single-engineer ready
+                </div>
+            </div>
+            <div>Global Technology Infrastructure Operations • QSR Restaurant Company • v1.0</div>
+        </div>
+    </div>
+
+    <script>
+        function initializeTailwind() { tailwind.config = { content: [], theme: { extend: {} } }; }
+        initializeTailwind();
+        console.log('%c✅ AWS Route 53 Resolver Integration Guide v1.0 loaded. Ready for PDF export.', 'color:#0ea5e9; font-weight:600');
+    </script>
+</body>
+</html>
