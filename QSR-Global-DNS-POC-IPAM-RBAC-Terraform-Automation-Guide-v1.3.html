@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSR Global DNS POC – IPAM, RBAC & Terraform Automation Guide v1.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        :root { --tw-color-primary: #0ea5e9; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); }
+        .table-row { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .table-row:hover { background-color: #f8fafc; transform: translateY(1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        @media print { 
+            body { font-size: 11pt; } 
+            .gradient-header { background: #0ea5e9 !important; color: white !important; } 
+            .no-print { display: none !important; } 
+            pre, code { white-space: pre-wrap; font-size: 9pt; }
+        }
+        .icon-circle { transition: transform 0.2s ease; }
+        .table-row:hover .icon-circle { transform: scale(1.1); }
+        .note { background: #ecfdf5; border-left: 4px solid #10b981; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- HEADER -->
+    <header class="gradient-header text-white py-12 shadow-lg print:py-8">
+        <div class="max-w-7xl mx-auto px-8 lg:px-12">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fa-solid fa-dns text-4xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-semibold tracking-tight">IPAM, RBAC &amp; Terraform Automation</h1>
+                        <p class="text-2xl text-sky-100">BlueCat Micetro &amp; EfficientIP SOLIDserver <span class="inline-block bg-white/30 text-white text-sm font-medium px-3 py-1 rounded-full ml-3">v1.3</span></p>
+                        <p class="text-sky-100/90 mt-1">QSR Global DNS POC • Multi-Cloud IPAM • API &amp; IaC Automation • Azure • AWS • GCP</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Service Accounts Ready</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-shield-alt"></i>
+                        <span>RBAC Models</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 px-4 h-9 rounded-3xl">
+                        <i class="fa-solid fa-cube"></i>
+                        <span>Terraform Modules</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-8 lg:px-12 py-10">
+
+        <!-- INSTRUCTIONS -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 p-8 mb-12">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0 w-10 h-10 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-info-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">Workshop Discussion Document</h2>
+                    <p class="text-slate-600 leading-relaxed">This document consolidates service account requirements, RBAC models, REST API examples, Terraform modules, and secure token management for BlueCat Micetro and EfficientIP SOLIDserver. All examples are copy-paste ready. Follow sections sequentially.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TWO-COLUMN TABLE -->
+        <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold flex items-center gap-3">
+                    <i class="fa-solid fa-list-check text-sky-600"></i>
+                    IPAM, RBAC &amp; Terraform Automation Guide
+                </h2>
+                <span class="px-5 py-2 bg-white text-slate-600 text-sm font-semibold rounded-3xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-server"></i>
+                    Service Accounts • RBAC • API • Terraform
+                </span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-8 py-5 font-semibold w-2/5 border-b border-slate-700">SECTION</th>
+                        <th class="px-8 py-5 font-semibold border-b border-slate-700">DETAILED STEPS / CONTENT</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+
+                    <!-- 1. Service Account Requirements -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-key text-emerald-500 icon-circle"></i>
+                                1. Service Account Requirements
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <table class="w-full text-sm border border-slate-200">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Cloud</th>
+                                        <th class="px-4 py-3 text-left">Region</th>
+                                        <th class="px-4 py-3 text-left">Platform / Integration</th>
+                                        <th class="px-4 py-3 text-left">Service Account Type</th>
+                                        <th class="px-4 py-3 text-left">Required Permissions / Roles</th>
+                                        <th class="px-4 py-3 text-left">Purpose</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    <tr><td class="px-4 py-3">Azure</td><td class="px-4 py-3">East US 2</td><td class="px-4 py-3">BlueCat Micetro</td><td class="px-4 py-3">Azure AD App Registration</td><td class="px-4 py-3">Reader + Network Contributor</td><td class="px-4 py-3">Cloud discovery &amp; IPAM sync</td></tr>
+                                    <tr><td class="px-4 py-3">Azure</td><td class="px-4 py-3">East US 2</td><td class="px-4 py-3">EfficientIP SOLIDserver</td><td class="px-4 py-3">Azure Service Principal</td><td class="px-4 py-3">Reader (Network Contributor for provisioning)</td><td class="px-4 py-3">Cloud discovery &amp; IPAM sync</td></tr>
+                                    <tr><td class="px-4 py-3">AWS</td><td class="px-4 py-3">us-east-2</td><td class="px-4 py-3">BlueCat Micetro</td><td class="px-4 py-3">IAM User or IAM Role</td><td class="px-4 py-3">AmazonEC2ReadOnlyAccess + VPC/Subnet read</td><td class="px-4 py-3">Cloud discovery &amp; IPAM sync</td></tr>
+                                    <tr><td class="px-4 py-3">AWS</td><td class="px-4 py-3">us-east-2</td><td class="px-4 py-3">EfficientIP SOLIDserver</td><td class="px-4 py-3">IAM Role (preferred)</td><td class="px-4 py-3">ec2:Describe* + VPC/Subnet read</td><td class="px-4 py-3">Cloud discovery &amp; IPAM sync</td></tr>
+                                    <tr><td class="px-4 py-3">GCP</td><td class="px-4 py-3">us-east4</td><td class="px-4 py-3">BlueCat Micetro</td><td class="px-4 py-3">Google Service Account (JSON key)</td><td class="px-4 py-3">compute.viewer + dns.reader</td><td class="px-4 py-3">Cloud discovery &amp; IPAM overlay</td></tr>
+                                    <tr><td class="px-4 py-3">GCP</td><td class="px-4 py-3">us-east4</td><td class="px-4 py-3">EfficientIP SOLIDserver</td><td class="px-4 py-3">Google Service Account (JSON key)</td><td class="px-4 py-3">roles/compute.viewer + roles/dns.reader</td><td class="px-4 py-3">Cloud discovery &amp; IPAM sync</td></tr>
+                                    <tr><td class="px-4 py-3">Azure</td><td class="px-4 py-3">East US 2</td><td class="px-4 py-3">Terraform</td><td class="px-4 py-3">Azure AD App Registration</td><td class="px-4 py-3">Contributor (limited to DNS/IPAM RGs) + Key Vault Secrets User</td><td class="px-4 py-3">IaC provisioning of DNS records &amp; IPAM blocks</td></tr>
+                                    <tr><td class="px-4 py-3">Azure</td><td class="px-4 py-3">East US 2</td><td class="px-4 py-3">Azure DevOps</td><td class="px-4 py-3">Managed Identity / Service Connection</td><td class="px-4 py-3">Reader + DNS/IPAM scoped Contributor + Key Vault access</td><td class="px-4 py-3">CI/CD pipelines (Terraform/Ansible)</td></tr>
+                                    <tr><td class="px-4 py-3">All Clouds</td><td class="px-4 py-3">Global</td><td class="px-4 py-3">InHouseMgmt-Global</td><td class="px-4 py-3">Dedicated API Client (OAuth2)</td><td class="px-4 py-3">DNS record create/update/delete (limited to CORP zones) + IPAM read</td><td class="px-4 py-3">Global in-house management application</td></tr>
+                                    <tr><td class="px-4 py-3">All Clouds</td><td class="px-4 py-3">Global</td><td class="px-4 py-3">BulkImport9000</td><td class="px-4 py-3">Dedicated API Client (OAuth2)</td><td class="px-4 py-3">Bulk DNS record create/update + IPAM write (scoped to import subnets)</td><td class="px-4 py-3">Automated bulk workstation &amp; app record imports</td></tr>
+                                </tbody>
+                            </table>
+                            <p class="text-xs mt-4"><strong>Notes:</strong> All accounts are read-only by default; elevate only where provisioning is required. Store credentials in Azure Key Vault / AWS Secrets Manager / GCP Secret Manager.</p>
+                        </td>
+                    </tr>
+
+                    <!-- 2. RBAC Models -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-shield-alt text-amber-500 icon-circle"></i>
+                                2. Recommended RBAC Models
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <table class="w-full text-sm border border-slate-200">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Role Name</th>
+                                        <th class="px-4 py-3 text-left">Scope</th>
+                                        <th class="px-4 py-3 text-left">Permissions (DNS + IPAM)</th>
+                                        <th class="px-4 py-3 text-left">Example Use Case</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    <tr><td class="px-4 py-3">Market-Client-Engineer</td><td class="px-4 py-3">Market tenants only</td><td class="px-4 py-3">Update A/PTR/AAAA records for workstations; read-only IPAM</td><td class="px-4 py-3">Market engineers update workstation records</td></tr>
+                                    <tr><td class="px-4 py-3">Global-Azure-Cloud-Ops</td><td class="px-4 py-3">CORP – Azure only</td><td class="px-4 py-3">Full management of Azure DNS zones; create/update TXT records for app keys</td><td class="px-4 py-3">Global Azure Ops manage app keys and Azure VNet DNS records</td></tr>
+                                    <tr><td class="px-4 py-3">CORP-Global-DNS-Admin</td><td class="px-4 py-3">CORP – All clouds</td><td class="px-4 py-3">Full CRUD on DNS zones, records, and IPAM across all clouds</td><td class="px-4 py-3">Global Technology Infrastructure Operations – full control</td></tr>
+                                    <tr><td class="px-4 py-3">CORP-ReadOnly-NOC</td><td class="px-4 py-3">CORP + Market (view only)</td><td class="px-4 py-3">Read-only access to all DNS records and IPAM views</td><td class="px-4 py-3">NOC/SRE monitoring and troubleshooting</td></tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- 3. BlueCat Micetro API & Terraform -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-cube text-blue-500 icon-circle"></i>
+                                3. BlueCat Micetro – REST API &amp; Terraform Examples
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>Authentication (Bearer token from /login – store in secret manager)</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X POST "https://micetro-central.corp.pri/mmws/api/v2/login" -d '{"username":"api-user@corp.root","password":"••••"}'</pre>
+
+                            <strong>Create A Record</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X POST "https://micetro-central.corp.pri/mmws/api/v2/dnsRecords" -H "Authorization: Bearer &lt;token&gt;" -d '{"zone":"corp.pri.","name":"app-test","type":"A","rdata":"192.168.30.50","ttl":300}'</pre>
+
+                            <strong>Create TXT Record</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X POST "https://micetro-central.corp.pri/mmws/api/v2/dnsRecords" -H "Authorization: Bearer &lt;token&gt;" -d '{"zone":"corp.pri.","name":"_acme-challenge.app-test","type":"TXT","rdata":"\"validation-token-123\"","ttl":60}'</pre>
+
+                            <strong>Update Record</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X PUT "https://micetro-central.corp.pri/mmws/api/v2/dnsRecords/&lt;record-id&gt;" -H "Authorization: Bearer &lt;token&gt;" -d '{"rdata":"192.168.30.51"}'</pre>
+
+                            <strong>Retrieve Record</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X GET "https://micetro-central.corp.pri/mmws/api/v2/dnsRecords?zone=corp.pri.&amp;name=app-test&amp;type=A" -H "Authorization: Bearer &lt;token&gt;"</pre>
+
+                            <strong>Terraform Example (bluecatlabs/bluecat provider)</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">resource "bluecat_dns_record" "workstation_a" {
+  zone  = "mkt.cloud."
+  name  = "ws-market-01"
+  type  = "A"
+  rdata = "192.168.30.50"
+  ttl   = 300
+}</pre>
+                        </td>
+                    </tr>
+
+                    <!-- 4. EfficientIP SOLIDserver API & Terraform -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-cube text-purple-500 icon-circle"></i>
+                                4. EfficientIP SOLIDserver – REST API &amp; Terraform Examples
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            <strong>Authentication (X-API-Key)</strong><br>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -H "X-API-Key: &lt;your-api-key&gt;" ...</pre>
+
+                            <strong>Create A Record</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X POST "https://solidserver.corp.pri/rest/api/v2.0/dns/record/" -H "X-API-Key: &lt;key&gt;" -d '{"zone":"corp.pri","name":"app-test","type":"A","rdata":"192.168.30.50","ttl":300}'</pre>
+
+                            <strong>Create TXT Record</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">curl -X POST "https://solidserver.corp.pri/rest/api/v2.0/dns/record/" -H "X-API-Key: &lt;key&gt;" -d '{"zone":"corp.pri","name":"_acme-challenge.app-test","type":"TXT","rdata":"validation-token-123","ttl":60}'</pre>
+
+                            <strong>Update / Retrieve Records</strong> – identical pattern with PUT/GET on /dns/record/&lt;id&gt; or query params.
+
+                            <strong>Terraform Example (EfficientIP-Labs/solidserver provider)</strong>
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">resource "solidserver_dns_record" "workstation_a" {
+  zone  = "mkt.cloud"
+  name  = "ws-market-01"
+  type  = "A"
+  rdata = "192.168.30.50"
+  ttl   = 300
+}</pre>
+                        </td>
+                    </tr>
+
+                    <!-- 5. Secure Token Management -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-lock text-rose-500 icon-circle"></i>
+                                5. Secure API Token Management
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Use cloud-native secret managers for short-lived, audited tokens. <strong>Azure Key Vault</strong>, <strong>AWS Secrets Manager</strong>, <strong>GCP Secret Manager</strong> or HashiCorp Vault (dynamic secrets).  
+                            Terraform example (Azure Key Vault):
+                            <pre class="bg-slate-900 text-emerald-300 p-4 rounded-2xl text-xs overflow-x-auto">data "azurerm_key_vault_secret" "micetro_token" {
+  name         = "micetro-api-token"
+  key_vault_id = var.key_vault_id
+}</pre>
+                            Pipeline best practice: OIDC federation – no static secrets in code. Rotate every 90 days with audit logging.
+                        </td>
+                    </tr>
+
+                    <!-- 6. Terraform DNS Modules Overview -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-cube text-sky-500 icon-circle"></i>
+                                6. Terraform DNS Modules Overview
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            Official providers:<br>
+                            • BlueCat: <code>bluecatlabs/bluecat</code> – DNS zones, records, IPAM<br>
+                            • EfficientIP: <code>EfficientIP-Labs/solidserver</code> – DNS records, IPAM<br>
+                            Both support full CRUD and integrate with the service accounts above. Use in CI/CD pipelines under the Terraform / Azure DevOps accounts.
+                        </td>
+                    </tr>
+
+                    <!-- 7. POC Recommendations -->
+                    <tr class="table-row">
+                        <td class="px-8 py-8 align-top font-semibold text-lg bg-slate-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-check-circle text-emerald-500 icon-circle"></i>
+                                7. POC Recommendations &amp; Next Steps
+                            </div>
+                        </td>
+                        <td class="px-8 py-8 align-top">
+                            1. Provision test credentials and validate discovery of 192.168.16/20/30.0/24 DNS spokes.<br>
+                            2. Apply RBAC models to test LDAP groups.<br>
+                            3. Test API curl examples and Terraform resources in lab.<br>
+                            4. Integrate InHouseMgmt-Global / BulkImport9000 API clients.<br>
+                            5. Store all tokens in secret managers and run pipelines via OIDC.
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-12 flex items-center justify-between text-xs text-slate-400 font-medium border-t pt-8">
+            <div>QSR Global DNS POC – IPAM, RBAC &amp; Terraform Automation Guide <span class="text-sky-600">v1.3</span></div>
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="window.print()" class="no-print flex items-center gap-2 hover:text-slate-600">
+                    <i class="fa-solid fa-print"></i>
+                    <span>PRINT / SAVE AS PDF</span>
+                </a>
+                <div>Suggested filename: <span class="font-mono bg-slate-100 px-3 py-1 rounded-2xl">QSR-Global-DNS-POC-IPAM-RBAC-Terraform-Automation-Guide-v1.3.html</span></div>
+                <div class="text-emerald-500 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Single-engineer ready
+                </div>
+            </div>
+            <div>Global Technology Infrastructure Operations • QSR Restaurant Company • v1.3</div>
+        </div>
+    </div>
+
+    <script>
+        function initializeTailwind() { 
+            tailwind.config = { content: [], theme: { extend: {} } }; 
+        }
+        initializeTailwind();
+        console.log('%c✅ QSR Global DNS POC IPAM/RBAC/Terraform Guide v1.3 loaded. Ready for PDF export.', 'color:#0ea5e9; font-weight:600');
+    </script>
+</body>
+</html>
