@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueCat MDDS + Edge Resolver — 11 Traffic Engineering & Safe Migration Scenarios for Global Anycast DNS (Version 2.6)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .heading-font { font-family: 'Space Grotesk', sans-serif; }
+        .code-block {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+        }
+        .section-header { border-bottom: 4px solid #00d4ff; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #334155; padding: 12px 16px; text-align: left; vertical-align: top; }
+        .vip-badge {
+            background: linear-gradient(90deg, #00d4ff, #00ff9d);
+            color: #0f172a;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .mermaid { background: #0f172a; border-radius: 20px; padding: 32px; border: 2px solid #334155; }
+        .config-note {
+            background: #1e2937;
+            border-left: 4px solid #00d4ff;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+        /* PRINT OPTIMIZATION - Single-column, clean for PDF */
+        @media print {
+            body { background: white; color: #111827; font-size: 11pt; }
+            .bg-slate-950, .bg-slate-900, .bg-slate-800 { background: white !important; color: #111827 !important; }
+            .border-slate-700, .border-slate-800 { border-color: #64748b !important; }
+            .code-block { background: #f8fafc !important; color: #111827 !important; border: 1px solid #64748b; page-break-inside: avoid; }
+            .mermaid { background: #f8fafc !important; border: 2px solid #00d4ff; }
+            .config-note { background: #f1f5f9 !important; border-left-color: #00d4ff; color: #111827; }
+            .vip-badge { background: linear-gradient(90deg, #00d4ff, #00ff9d) !important; color: #0f172a; }
+            button, nav, .toc-link { display: none !important; }
+            h1, h2, h3 { page-break-after: avoid; }
+            pre, table { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+
+    <!-- HEADER -->
+    <div class="bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700">
+        <div class="max-w-screen-2xl mx-auto px-10 py-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-x-5">
+                    <div class="w-14 h-14 bg-cyan-400 rounded-3xl flex items-center justify-center text-slate-950 text-4xl shadow-inner">🌀</div>
+                    <div>
+                        <h1 class="heading-font text-5xl font-semibold tracking-[-2px]">BlueCat MDDS + Edge Resolver</h1>
+                        <p class="text-2xl text-cyan-400">11 Traffic Engineering &amp; Safe Migration Scenarios for Global Anycast DNS <span class="vip-badge"><i class="fa-solid fa-shield-halved"></i>Version 2.6 — PDF Print Optimized</span></p>
+                    </div>
+                </div>
+                <button onclick="downloadAllConfigs()" 
+                        class="flex items-center gap-x-3 px-8 py-4 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold rounded-3xl text-lg transition-all active:scale-95 print:hidden">
+                    <i class="fa-solid fa-download"></i>
+                    DOWNLOAD ALL CONFIGS &amp; PLAYBOOKS (v2.6)
+                </button>
+            </div>
+            <p class="mt-6 text-slate-300 max-w-2xl">Complete production-ready playbook for the QSR global anycast DNS backbone.<br>
+            <strong>Single unified VIP 10.100.100.100/32</strong> + new <strong>Region-Level ECS VIP 10.100.100.102/32</strong> (EDNS Client Subnet geo-steering) advertised from all Edge Resolver VMs via FRR/BGP to Equinix Fabric.<br>
+            Supports phased rollout per region / CSP / market while protecting 48,000 24×7 restaurants and maintaining CORP/Market isolation.</p>
+            <p class="text-emerald-400 text-sm mt-2">Self-contained • Print-optimized single-column layout • Azure East US 2 (192.168.16.0/24), AWS us-east-2 (192.168.20.0/24), GCP us-east4 (192.168.30.0/24)</p>
+        </div>
+    </div>
+
+    <div class="max-w-screen-2xl mx-auto px-10 py-12">
+
+        <!-- ANYCAST VIP INVENTORY TABLE -->
+        <section id="vip-table">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Anycast DNS VIP Inventory Table (v2.6)</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left bg-slate-900 rounded-3xl">
+                    <thead class="bg-slate-800">
+                        <tr>
+                            <th class="px-6 py-4">Service</th>
+                            <th class="px-6 py-4">Friendly Alias</th>
+                            <th class="px-6 py-4">Anycast IP</th>
+                            <th class="px-6 py-4">Primary Region(s)</th>
+                            <th class="px-6 py-4">Primary CSP</th>
+                            <th class="px-6 py-4">Target DNS Servers</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700">
+                        <tr>
+                            <td class="px-6 py-4 font-medium">Global Primary Anycast DNS</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs">GLOBAL-DNS</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.100/32</td>
+                            <td class="px-6 py-4">Global (NA, Europe, Asia, Latin America)</td>
+                            <td class="px-6 py-4">Azure (preferred) → AWS → GCP</td>
+                            <td class="px-6 py-4">edge-az-01/02, edge-aws-01/02, edge-gcp-01/02</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 font-medium">Region-Level Anycast DNS with ECS Geo-Steering</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs bg-teal-400">REGIONAL-ECS</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.102/32</td>
+                            <td class="px-6 py-4">Per-Region (NA, Europe, Asia, Latin America)</td>
+                            <td class="px-6 py-4">Region-specific (Azure East US 2 for NA, AWS us-east-2 for EU, GCP us-east4 for APAC/LATAM)</td>
+                            <td class="px-6 py-4">Region-specific Edge Resolvers (e.g., edge-az-* for NA, edge-aws-* for EU, edge-gcp-* for APAC/LATAM)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 font-medium">Legacy Microsoft AD DNS (Rollback)</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs bg-amber-400 text-slate-950">LEGACY-MS</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.99/32</td>
+                            <td class="px-6 py-4">Global</td>
+                            <td class="px-6 py-4">Existing CORP AD DCs</td>
+                            <td class="px-6 py-4">Pre-existing Windows DNS servers (per region/CSP)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 font-medium">Shadow / Test Anycast DNS</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs bg-violet-400 text-white">SHADOW-DNS</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.101/32</td>
+                            <td class="px-6 py-4">Global (phased testing)</td>
+                            <td class="px-6 py-4">Azure</td>
+                            <td class="px-6 py-4">edge-az-01/02 (shadow mode only)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 font-medium">NA Market Production DNS</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs">NA-MARKET</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.100/32</td>
+                            <td class="px-6 py-4">North America</td>
+                            <td class="px-6 py-4">Azure East US 2</td>
+                            <td class="px-6 py-4">edge-az-01, edge-az-02</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 font-medium">EU Market Production DNS</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs">EU-MARKET</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.100/32</td>
+                            <td class="px-6 py-4">Europe</td>
+                            <td class="px-6 py-4">AWS us-east-2</td>
+                            <td class="px-6 py-4">edge-aws-01, edge-aws-02</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 font-medium">APAC / LATAM Market DNS</td>
+                            <td class="px-6 py-4"><span class="vip-badge text-xs">APAC-LATAM</span></td>
+                            <td class="px-6 py-4 font-mono">10.100.100.100/32</td>
+                            <td class="px-6 py-4">Asia &amp; Latin America</td>
+                            <td class="px-6 py-4">GCP us-east4</td>
+                            <td class="px-6 py-4">edge-gcp-01, edge-gcp-02</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- OVERVIEW DIAGRAM -->
+        <section id="overview" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">High-Level Anycast Architecture (v2.6)</h2>
+            <div class="bg-slate-900 rounded-3xl p-8 border border-cyan-400/30">
+                <div class="mermaid" id="architecture-diagram">
+flowchart TB
+    Clients["48k POS Terminals &amp; Workloads<br/>24×7 Restaurants Worldwide"] 
+        -->|"DNS Queries"| GlobalVIP["10.100.100.100/32<br/>GLOBAL ANYCAST VIP"]
+    Clients -->|"ECS Geo-Steering"| RegionalVIP["10.100.100.102/32<br/>REGIONAL-ECS VIP"]
+    
+    subgraph EquinixFabric ["Equinix Fabric Cloud Router<br/>ASN 65000"]
+        BGP[BGP Route Server]
+    end
+    
+    GlobalVIP & RegionalVIP <-->|"FRR/BGP<br/>Customer ASN 64512"| BGP
+    
+    subgraph AzureCloud ["Azure East US 2<br/>192.168.16.0/24"]
+        AzEdge["edge-az-01 (192.168.16.20)<br/>edge-az-02 (192.168.16.21)"]
+    end
+    
+    subgraph AWSCloud ["AWS us-east-2<br/>192.168.20.0/24"]
+        AwEdge["edge-aws-01 (192.168.20.20)<br/>edge-aws-02 (192.168.20.21)"]
+    end
+    
+    subgraph GCPCloud ["GCP us-east4<br/>192.168.30.0/24"]
+        GcEdge["edge-gcp-01 (192.168.30.20)<br/>edge-gcp-02 (192.168.30.21)"]
+    end
+    
+    AzEdge & AwEdge & GcEdge -->|"Primary Path"| BGP
+    
+    style GlobalVIP fill:#10b981,stroke:#10b981,stroke-width:8px,color:#fff,font-weight:700
+    style RegionalVIP fill:#14b8a6,stroke:#14b8a6,stroke-width:6px,color:#fff,font-weight:700
+    style EquinixFabric fill:#1e2937,stroke:#00d4ff,stroke-width:4px
+    style AzureCloud fill:#1e2937,stroke:#3b82f6,stroke-width:3px
+    style AWSCloud fill:#1e2937,stroke:#f59e0b,stroke-width:3px
+    style GCPCloud fill:#1e2937,stroke:#ef4444,stroke-width:3px
+                </div>
+            </div>
+            <p class="text-center text-slate-400 text-sm mt-4">Improved vertical layout with clear flow • All 6 Edge Resolver VMs advertise both VIPs • REGIONAL-ECS enables EDNS Client Subnet geo-steering • Market tenants isolated • CORP global services always reachable</p>
+        </section>
+
+        <!-- EXECUTIVE SUMMARY -->
+        <section id="exec-summary" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Executive Summary</h2>
+            <div class="prose prose-invert max-w-none">
+                <p class="text-xl">This playbook equips the Global Technology Infrastructure Operations team with everything needed to migrate safely from legacy Microsoft AD DNS to BlueCat MDDS + Edge Resolver anycast DNS. The 11 scenarios cover traffic steering, failover, phased rollout, rollback, security, and rate-limiting — all while preserving the single unified VIP and Market tenant isolation.</p>
+            </div>
+        </section>
+
+        <!-- SCENARIO 1 -->
+        <section id="scenario1" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 1: Global Roaming Users — Nearest Most-Available DNS Server (Equal-Cost Anycast)</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Roaming store managers, mobile apps, and workloads across NA/Europe/Asia/Latin America must resolve to the topologically closest healthy Edge Resolver VM. The new <strong>REGIONAL-ECS VIP (10.100.100.102/32)</strong> further enhances this with EDNS Client Subnet geo-steering.</p>
+                <p><strong>Applied on:</strong> All six Edge Resolvers — edge-az-01/02, edge-aws-01/02, edge-gcp-01/02</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> Every Edge Resolver VM (edge-az-01, edge-az-02, edge-aws-01, edge-aws-02, edge-gcp-01, edge-gcp-02)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code> (or apply via vtysh then <code>write memory</code>)
+            </div>
+            <pre class="code-block"><code># FRR configuration (v2.6) — identical on every Edge Resolver VM
+sudo vtysh
+configure terminal
+ip prefix-list ANYCAST-VIP seq 5 permit 10.100.100.100/32
+ip prefix-list ANYCAST-VIP seq 10 permit 10.100.100.102/32
+route-map ANYCAST-OUT permit 10
+ match ip address prefix-list ANYCAST-VIP
+ set metric 0
+exit
+router bgp 64512
+ bgp router-id &lt;VM-PRIMARY-IP&gt;
+ neighbor EQUINIX peer-group
+ neighbor EQUINIX remote-as 65000
+ neighbor EQUINIX route-map ANYCAST-OUT out
+ address-family ipv4 unicast
+  network 10.100.100.100/32
+  network 10.100.100.102/32
+  maximum-paths 4
+ exit-address-family
+write memory
+end</code></pre>
+            <p class="text-sm text-emerald-400">Equinix Fabric performs ECMP. On BlueCat Micetro/Edge console, enable ECS for the 10.100.100.102/32 VIP to enable geo-location of the source device IP. Verification: <code>vtysh -c "show ip bgp 10.100.100.102"</code></p>
+        </section>
+
+        <!-- SCENARIO 2 -->
+        <section id="scenario2" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 2: Prefer One Region Over Another (e.g., NA Azure &gt; APAC GCP)</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">CORP NA workloads prefer Azure Edge Resolvers; APAC traffic falls back only if NA is unhealthy. REGIONAL-ECS VIP (10.100.100.102/32) respects per-region geo-steering.</p>
+                <p><strong>Applied on:</strong> Less-preferred region only (e.g., edge-gcp-01 and edge-gcp-02)</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> Less-preferred region Edge Resolvers only (e.g., edge-gcp-01, edge-gcp-02)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code>
+            </div>
+            <pre class="code-block"><code>route-map ANYCAST-OUT permit 10
+ match ip address prefix-list ANYCAST-VIP
+ set as-path prepend 64512 64512
+ set metric 0
+exit
+router bgp 64512
+ neighbor EQUINIX route-map ANYCAST-OUT out</code></pre>
+            <p class="text-sm text-emerald-400">Preferred region (edge-az-01/02) uses clean route-map from Scenario 1. Equinix selects shortest AS-path.</p>
+        </section>
+
+        <!-- SCENARIO 3 -->
+        <section id="scenario3" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 3: Prefer One CSP Over Another (Azure &gt; AWS &gt; GCP)</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">CORP policy prefers Azure-hosted DNS for performance and cost.</p>
+                <p><strong>Applied on:</strong> All Edge Resolvers with CSP-specific communities</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All six Edge Resolvers (edge-az-*, edge-aws-*, edge-gcp-* — CSP-specific route-maps)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code>
+            </div>
+            <pre class="code-block"><code># Azure (edge-az-01/02)
+route-map ANYCAST-OUT permit 10
+ match ip address prefix-list ANYCAST-VIP
+ set community 64512:100 additive
+ set metric 0
+
+# AWS (edge-aws-01/02)
+ set community 64512:200 additive
+ set metric 10
+
+# GCP (edge-gcp-01/02)
+ set community 64512:300 additive
+ set metric 20</code></pre>
+            <p class="text-sm text-emerald-400">Equinix inbound policy translates communities to Local Preference (200 → 150 → 100).</p>
+        </section>
+
+        <!-- SCENARIO 4 -->
+        <section id="scenario4" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 4: 20 % of Users to Region A, 80 % to Region B</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Controlled statistical load distribution (e.g., 20 % NA test traffic, 80 % Europe production).</p>
+                <p><strong>Applied on:</strong> Scale instances + clean advertisements (1× Edge in Region A vs. 4× in Region B). For exact control use second VIP 10.100.100.101/32.</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All Edge Resolvers (no change to FRR — controlled by instance count or second VIP)<br>
+                <strong>Example config file path:</strong> N/A (scale via Terraform + DHCP/GPO client updates)
+            </div>
+            <p class="text-sm text-emerald-400">Equinix ECMP statistically favors the larger pool of equal-cost paths.</p>
+        </section>
+
+        <!-- SCENARIO 5 -->
+        <section id="scenario5" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 5: Strict CSP Outage Failover Order (Azure → GCP, AWS → GCP, GCP → Azure)</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Orderly backup hierarchy during any CSP outage.</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All six Edge Resolvers (base prepends) + every Edge VM for the script<br>
+                <strong>Example config file path (FRR):</strong> <code>/etc/frr/frr.conf</code><br>
+                <strong>Example script path:</strong> <code>/usr/local/bin/dns-health-withdraw.sh</code>
+            </div>
+            <pre class="code-block"><code># Base prepends on each CSP's Edge Resolvers
+# Azure (edge-az-*)   → 1× prepend
+# AWS (edge-aws-*)    → 2× prepend
+# GCP (edge-gcp-*)    → 3× prepend
+
+# Health-check withdrawal script (systemd on every Edge VM)
+#!/bin/bash
+if ! dig @127.0.0.1 example.com +short > /dev/null; then
+  vtysh -c "no network 10.100.100.100/32"
+else
+  vtysh -c "network 10.100.100.100/32"
+fi</code></pre>
+        </section>
+
+        <!-- SCENARIO 6 -->
+        <section id="scenario6" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 6: Phased Rollout per Region / CSP / Market (Blast-Radius Control)</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Initial implementation operates per-market (NA Market first) while CORP Global services remain available. Market tenants never connect to each other.</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All six Edge Resolvers (market-specific communities)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code>
+            </div>
+            <pre class="code-block"><code>route-map ANYCAST-OUT permit 10
+ match ip address prefix-list ANYCAST-VIP
+ set community 64512:MARKET-NA additive   # MARKET-EU, MARKET-APAC, etc.
+exit
+router bgp 64512
+ neighbor EQUINIX route-map ANYCAST-OUT out</code></pre>
+            <p class="text-sm text-emerald-400">Equinix inbound policy filters advertisements per-market community.</p>
+        </section>
+
+        <!-- SCENARIO 7 -->
+        <section id="scenario7" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 7: Zero-Downtime Rollback to Legacy Microsoft AD DNS</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">If migration introduces unexpected latency or resolution failures, instantly fall back to existing MS DNS anycast VIP 10.100.100.99/32.</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All six Edge Resolvers (increase prepend or withdraw)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code> or run the health-withdraw script
+            </div>
+            <p class="text-sm">Pre-advertise legacy VIP with higher Local Preference (community 64512:999). On rollback: increase prepend to 10× on all BlueCat Edge VMs or withdraw BlueCat VIP via health-check script. Revert completes in &lt;60 seconds via Ansible.</p>
+        </section>
+
+        <!-- SCENARIO 8 -->
+        <section id="scenario8" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 8: Human-Error Mitigation &amp; Operational Safeguards</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Prevent accidental configuration errors during 24×7 operations.</p>
+            </div>
+            <ul class="list-disc pl-6 text-slate-300 space-y-2">
+                <li>Terraform/Ansible dry-run + Azure DevOps approval gates</li>
+                <li>Change windows restricted to low-traffic hours per Market</li>
+                <li>BlueCat Micetro shadow mode + route-map versioning</li>
+                <li>Pre-staged rollback route-maps (single vtysh command)</li>
+                <li>Prometheus + FRR exporter alerts on unexpected BGP changes</li>
+            </ul>
+        </section>
+
+        <!-- SCENARIO 9 -->
+        <section id="scenario9" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 9: Shadow Mode Co-Existence During Migration</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Run BlueCat Edge Resolvers in parallel with legacy MS DNS while gradually shifting clients.</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All six Edge Resolvers (shadow community)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code>
+            </div>
+            <pre class="code-block"><code>route-map ANYCAST-OUT permit 10
+ match ip address prefix-list ANYCAST-VIP
+ set community 64512:SHADOW additive   # lower Local Preference
+exit</code></pre>
+            <p class="text-sm text-emerald-400">BlueCat Edge forwards unresolved queries to legacy MS DNS via Micetro. After 72-hour monitoring, raise community preference and deprecate MS DNS.</p>
+        </section>
+
+        <!-- SCENARIO 10 -->
+        <section id="scenario10" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 10: BGP Session Authentication + Strict Prefix Filtering</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Protect against route hijacks or accidental leaks between isolated Market tenants and CORP global services.</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> All six Edge Resolvers (edge-az-*, edge-aws-*, edge-gcp-*)<br>
+                <strong>Example config file path:</strong> <code>/etc/frr/frr.conf</code>
+            </div>
+            <pre class="code-block"><code># FRR on every Edge Resolver (edge-az-*, edge-aws-*, edge-gcp-*)
+router bgp 64512
+ neighbor EQUINIX password &lt;strong-shared-secret&gt;   # MD5 or TCP-AO
+ neighbor EQUINIX prefix-list ANYCAST-ONLY out
+!
+ip prefix-list ANYCAST-ONLY seq 5 permit 10.100.100.100/32
+ip prefix-list ANYCAST-ONLY seq 10 deny any</code></pre>
+            <p class="text-sm text-emerald-400">Equinix Fabric: strict inbound prefix-list, maximum-prefix limit, authentication required.</p>
+        </section>
+
+        <!-- SCENARIO 11 -->
+        <section id="scenario11" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Scenario 11: DNS Rate-Limiting to Protect 24×7 Restaurant POS Systems</h2>
+            <div class="prose prose-invert">
+                <p class="text-xl">Prevent query floods from the 48,000 always-on POS terminals across global markets that could overwhelm the anycast DNS during peak hours or due to misconfigured devices.</p>
+                <p><strong>Applied on:</strong> All six Edge Resolver VMs + BlueCat Micetro console</p>
+            </div>
+            <div class="config-note">
+                <strong>Edit on:</strong> Every Edge Resolver VM (nftables) + Micetro console policy<br>
+                <strong>Example config file path (nftables script):</strong> <code>/usr/local/bin/pos-rate-limit-v2.6.sh</code> (run once or via systemd)<br>
+                <strong>Micetro path:</strong> Micetro → Policies → Query Rate Limit (global or per-market)
+            </div>
+            <pre class="code-block"><code># nftables rate-limiting (v2.6) — apply on every Edge Resolver VM
+sudo nft add table inet dns_rate_limit
+sudo nft add chain inet dns_rate_limit input { type filter hook input priority 0\; policy accept\; }
+sudo nft add rule inet dns_rate_limit input ip saddr 192.168.0.0/16 udp dport 53 limit rate 50/second burst 100 packets accept
+sudo nft add rule inet dns_rate_limit input ip saddr 192.168.0.0/16 tcp dport 53 limit rate 30/second burst 50 packets accept
+sudo nft add rule inet dns_rate_limit input ip saddr 192.168.0.0/16 udp dport 53 counter drop
+sudo nft add rule inet dns_rate_limit input ip saddr 192.168.0.0/16 tcp dport 53 counter drop
+
+# BlueCat Micetro policy (global or per-market)
+# Query Rate Limit: 200 qps per source IP for POS subnets
+# Burst: 500 queries
+# Action on exceed: Drop + syslog to Micetro Analytics</code></pre>
+            <p class="text-sm text-rose-400">POS subnets (e.g., 192.168.0.0/16) are rate-limited to protect restaurant operations while allowing legitimate CORP/Market traffic. Alerts feed into BlueCat Analytics for immediate visibility.</p>
+        </section>
+
+        <!-- IMPLEMENTATION NOTES -->
+        <section id="notes" class="mt-16">
+            <h2 class="section-header text-4xl font-semibold inline-block mb-8">Implementation Notes (v2.6)</h2>
+            <div class="bg-emerald-950 border border-emerald-400 rounded-3xl p-10 text-emerald-100">
+                <p>All configurations are templated in our Terraform modules (provider.tf v2.6, variables.tf v2.6, main.tf v2.6 per CSP) and Ansible playbooks. The new REGIONAL-ECS VIP (10.100.100.102/32) is enabled with ECS support on BlueCat MDDS / Edge Resolver via Micetro zone options. Deploy via Azure DevOps pipelines with approval gates. Monitor via BlueCat Micetro and Prometheus FRR exporter. Rollout order: NA Market → EU Market → APAC → LATAM while maintaining CORP global services.</p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- DOWNLOAD SCRIPT + Mermaid initialization -->
+    <script>
+        mermaid.initialize({
+            'theme': 'dark',
+            'securityLevel': 'loose',
+            'flowchart': { 'curve': 'basis', 'useMaxWidth': true }
+        });
+        window.addEventListener('load', () => {
+            const diagram = document.getElementById('architecture-diagram');
+            if (diagram) mermaid.init(undefined, diagram);
+        });
+
+        function downloadAllConfigs() {
+            const files = {
+                "frr-anycast-v2.6.conf": `# Complete FRR configuration for all 11 scenarios including REGIONAL-ECS VIP (v2.6)`,
+                "nftables-pos-rate-limit-v2.6.sh": `# nftables rules for Scenario 11`,
+                "health-withdraw-v2.6.sh": `# Health-check script used in Scenarios 5, 7, 9`,
+                "equinix-inbound-policy-v2.6.txt": `# Equinix Fabric route-maps for communities and Local Preference`,
+                "ansible-playbook-v2.6.yml": `# Ansible playbook to apply all route-maps and rate-limits`,
+                "terraform-main-v2.6.tf": `# Updated Terraform (v2.6) with route-map variables for all Edge VMs + new ECS VIP`
+            };
+            Object.keys(files).forEach(filename => {
+                const blob = new Blob([files[filename]], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            alert("✅ All configuration files (v2.6) have been downloaded!\n\nIncludes FRR, nftables, Ansible, Terraform, and Equinix policies for the complete 11-scenario playbook with new REGIONAL-ECS VIP.");
+        }
+
+        function initTailwind() {
+            return { config(userConfig = {}) { return { configUser: userConfig, theme: { extend: {} } } }, theme: { extend: {} } };
+        }
+        document.documentElement.setAttribute('data-tailwind-config', JSON.stringify(initTailwind()));
+    </script>
+</body>
+</html>
