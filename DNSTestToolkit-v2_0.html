@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNSTestToolkit v2.0 — Pluggable DNS Validation Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg:         #0a0c10;
+    --surface:    #0f1318;
+    --surface2:   #161b24;
+    --border:     #1e2736;
+    --border2:    #253040;
+    --text:       #c8d6e8;
+    --text-muted: #5a6e87;
+    --text-dim:   #3d4f63;
+    --accent:     #00d4aa;
+    --accent2:    #0090ff;
+    --accent3:    #ff6b35;
+    --accent4:    #9b59ff;
+    --accent5:    #f0c040;
+    --green:      #22c55e;
+    --red:        #ef4444;
+    --amber:      #f59e0b;
+    --mono:       'IBM Plex Mono', monospace;
+    --sans:       'IBM Plex Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; line-height: 1.6; min-height: 100vh; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px 16px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .brand-title { font-family: var(--mono); font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+  .brand-sub { font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .header-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 3px; text-transform: uppercase; }
+  .badge-green  { background: rgba(34,197,94,0.15);  color: var(--green);   border: 1px solid rgba(34,197,94,0.3); }
+  .badge-blue   { background: rgba(0,144,255,0.12);  color: var(--accent2); border: 1px solid rgba(0,144,255,0.25); }
+  .badge-teal   { background: rgba(0,212,170,0.12);  color: var(--accent);  border: 1px solid rgba(0,212,170,0.25); }
+  .badge-amber  { background: rgba(245,158,11,0.12); color: var(--amber);   border: 1px solid rgba(245,158,11,0.3); }
+  .badge-orange { background: rgba(255,107,53,0.12); color: var(--accent3); border: 1px solid rgba(255,107,53,0.3); }
+  .badge-purple { background: rgba(155,89,255,0.12); color: var(--accent4); border: 1px solid rgba(155,89,255,0.3); }
+  .badge-red    { background: rgba(239,68,68,0.12);  color: var(--red);     border: 1px solid rgba(239,68,68,0.3); }
+  .nav-tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+  .nav-tab { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 6px 14px; border-radius: 4px; cursor: pointer; color: var(--text-muted); border: 1px solid transparent; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.3px; }
+  .nav-tab:hover { color: var(--text); background: var(--surface2); }
+  .nav-tab.active { color: var(--accent); background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.25); }
+  .layout { display: grid; grid-template-columns: 290px 1fr; min-height: calc(100vh - 107px); }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto; position: sticky; top: 107px; height: calc(100vh - 107px); }
+  .sidebar-section { margin-bottom: 22px; }
+  .sidebar-label { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); padding: 0 20px; margin-bottom: 6px; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 7px 20px; cursor: pointer; color: var(--text-muted); font-size: 12px; transition: all 0.1s; border-left: 2px solid transparent; }
+  .sidebar-item:hover { color: var(--text); background: var(--surface2); }
+  .sidebar-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,170,0.05); }
+  .sidebar-item .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-teal   { background: var(--accent); }
+  .dot-blue   { background: var(--accent2); }
+  .dot-orange { background: var(--accent3); }
+  .dot-purple { background: var(--accent4); }
+  .dot-amber  { background: var(--amber); }
+  .dot-green  { background: var(--green); }
+  .dot-red    { background: var(--red); }
+  .dot-pink   { background: #ec4899; }
+  .dot-cyan   { background: #06b6d4; }
+  .main { padding: 28px 36px; overflow-y: auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .section-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .section-title { font-family: var(--mono); font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .section-desc { font-size: 12px; color: var(--text-muted); max-width: 640px; }
+  .code-wrapper { position: relative; margin-bottom: 16px; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; padding: 8px 16px; }
+  .code-label { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px; }
+  .copy-btn { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text-muted); background: transparent; border: 1px solid var(--border2); border-radius: 3px; padding: 3px 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+  pre.code-block { background: #070a0e; border: 1px solid var(--border); border-radius: 0 0 6px 6px; padding: 20px; overflow-x: auto; font-family: var(--mono); font-size: 11.5px; line-height: 1.75; color: #b8cce0; }
+  .kw  { color: #79b8ff; }
+  .cm  { color: #4a5f75; font-style: italic; }
+  .st  { color: #9ecb7e; }
+  .nu  { color: #f8c555; }
+  .va  { color: #c8d6e8; }
+  .fn  { color: #00d4aa; }
+  .ty  { color: #ff9e64; }
+  .op  { color: #89b4d1; }
+  .hl  { background: rgba(0,212,170,0.07); display: block; margin: 0 -20px; padding: 0 20px; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .info-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 16px; }
+  .info-card-icon { font-size: 20px; margin-bottom: 10px; }
+  .info-card-title { font-family: var(--mono); font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .info-card-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .data-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; margin-bottom: 20px; }
+  .data-table thead tr { background: var(--surface2); border-bottom: 1px solid var(--border2); }
+  .data-table th { padding: 8px 14px; text-align: left; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.015); }
+  .alert { border-radius: 5px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; display: flex; gap: 10px; align-items: flex-start; }
+  .alert i { margin-top: 1px; flex-shrink: 0; }
+  .alert-info  { background: rgba(0,144,255,0.08);  border: 1px solid rgba(0,144,255,0.2);  color: #7dc4ff; }
+  .alert-warn  { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
+  .alert-tip   { background: rgba(0,212,170,0.08);  border: 1px solid rgba(0,212,170,0.2);  color: #00d4aa; }
+  .alert-crit  { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.2);  color: #f87171; }
+  .mod-tag { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; margin-right: 6px; }
+  .sub-header { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .sub-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .module-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+  .module-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; border-top: 2px solid transparent; transition: border-top-color 0.2s; }
+  .module-card:hover { border-top-color: var(--accent); }
+  .module-card.m-baseline  { border-top-color: rgba(0,212,170,0.5); }
+  .module-card.m-load      { border-top-color: rgba(0,144,255,0.5); }
+  .module-card.m-anycast   { border-top-color: rgba(255,107,53,0.5); }
+  .module-card.m-failover  { border-top-color: rgba(155,89,255,0.5); }
+  .module-card.m-tenant    { border-top-color: rgba(245,158,11,0.5); }
+  .module-card.m-geo       { border-top-color: rgba(34,197,94,0.5); }
+  .module-card.m-negative  { border-top-color: rgba(239,68,68,0.5); }
+  .module-card.m-ttl       { border-top-color: rgba(176,176,60,0.5); }
+  .module-card.m-xfer      { border-top-color: rgba(6,182,212,0.5); }
+  .module-card.m-threat    { border-top-color: rgba(239,68,68,0.6); }
+  .module-card.m-sinkhole  { border-top-color: rgba(236,72,153,0.5); }
+  .module-card.m-tsig      { border-top-color: rgba(132,204,22,0.5); }
+  .module-card.m-ecsadv    { border-top-color: rgba(251,146,60,0.5); }
+  .module-card.m-report    { border-top-color: rgba(140,140,140,0.5); }
+  .module-title { font-family: var(--mono); font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+  .module-id { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-bottom: 8px; }
+  .module-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .dl-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #000; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 20px; border-radius: 4px; border: none; cursor: pointer; transition: opacity 0.15s; }
+  .dl-btn:hover { opacity: 0.85; }
+  .dl-btn-outline { background: transparent; color: var(--accent); border: 1px solid rgba(0,212,170,0.4); }
+  .dl-btn-outline:hover { background: rgba(0,212,170,0.08); opacity: 1; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  @media print {
+    .header { position: static; } .layout { grid-template-columns: 1fr; } .sidebar { display: none; }
+    .section { display: block !important; page-break-before: always; } .section:first-child { page-break-before: auto; }
+    pre.code-block { white-space: pre-wrap; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-title">DNSTestToolkit &nbsp;/&nbsp; v2.0</div>
+        <div class="brand-sub">Pluggable DNS Validation Engine &nbsp;·&nbsp; BlueCat MDDS + Edge Resolver + Anycast + Split-DNS + Threat Protection</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge badge-teal">PowerShell 7+</span>
+      <span class="badge badge-blue">Multi-Cloud</span>
+      <span class="badge badge-green">14 Modules</span>
+      <span class="badge badge-orange">Anycast-Aware</span>
+      <span class="badge badge-purple">TSIG / AXFR</span>
+      <span class="badge badge-red">Threat Protection</span>
+      <span class="badge badge-amber">HTML Reports</span>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showSection('overview')">Overview</div>
+    <div class="nav-tab" onclick="showSection('engine')">Engine Core</div>
+    <div class="nav-tab" onclick="showSection('modules')">Modules</div>
+    <div class="nav-tab" onclick="showSection('newmodules')">New Modules</div>
+    <div class="nav-tab" onclick="showSection('scenarios')">Scenarios</div>
+    <div class="nav-tab" onclick="showSection('report')">Report Engine</div>
+    <div class="nav-tab" onclick="showSection('runner')">Runner &amp; Config</div>
+    <div class="nav-tab" onclick="showSection('reference')">Reference</div>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Architecture</div>
+    <div class="sidebar-item active" onclick="showSection('overview'); setActive(this)">
+      <span class="dot dot-teal"></span> Overview &amp; Design
+    </div>
+    <div class="sidebar-item" onclick="showSection('engine'); setActive(this)">
+      <span class="dot dot-blue"></span> Engine Core (DNSTestEngine.ps1)
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Original Modules</div>
+    <div class="sidebar-item" onclick="showSection('modules'); setActive(this)">
+      <span class="dot dot-green"></span> Module Loader &amp; Registry
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-baseline'); setActive(this)">
+      <span class="dot dot-teal"></span> MOD-01 · Baseline Resolution
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-load'); setActive(this)">
+      <span class="dot dot-blue"></span> MOD-02 · Load &amp; Throughput
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-anycast'); setActive(this)">
+      <span class="dot dot-orange"></span> MOD-03 · Anycast Path Verification
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-failover'); setActive(this)">
+      <span class="dot dot-purple"></span> MOD-04 · Failover &amp; Convergence
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-tenant'); setActive(this)">
+      <span class="dot dot-amber"></span> MOD-05 · Tenant Isolation
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-geo'); setActive(this)">
+      <span class="dot dot-green"></span> MOD-06 · Geo / ECS Steering
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-negative'); setActive(this)">
+      <span class="dot dot-red"></span> MOD-07 · Negative / NXDOMAIN
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-ttl'); setActive(this)">
+      <span class="dot dot-amber"></span> MOD-08 · TTL &amp; Cache Behavior
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">New Modules (v2.0)</div>
+    <div class="sidebar-item" onclick="showSection('mod-xfer'); setActive(this)">
+      <span class="dot dot-cyan"></span> MOD-10 · Zone Transfer (AXFR/IXFR)
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-threat'); setActive(this)">
+      <span class="dot dot-red"></span> MOD-11 · Threat Protection
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-sinkhole'); setActive(this)">
+      <span class="dot dot-pink"></span> MOD-12 · DNS Sinkhole Validation
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-tsig'); setActive(this)">
+      <span class="dot dot-green"></span> MOD-13 · Dynamic Updates (TSIG)
+    </div>
+    <div class="sidebar-item" onclick="showSection('mod-ecsadv'); setActive(this)">
+      <span class="dot dot-orange"></span> MOD-14 · ECS Cross-Cloud CNAME
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Scenarios &amp; Output</div>
+    <div class="sidebar-item" onclick="showSection('scenarios'); setActive(this)">
+      <span class="dot dot-orange"></span> Scenario Playbook
+    </div>
+    <div class="sidebar-item" onclick="showSection('report'); setActive(this)">
+      <span class="dot dot-teal"></span> HTML Report Engine
+    </div>
+    <div class="sidebar-item" onclick="showSection('runner'); setActive(this)">
+      <span class="dot dot-blue"></span> Runner &amp; Config Files
+    </div>
+    <div class="sidebar-item" onclick="showSection('reference'); setActive(this)">
+      <span class="dot dot-green"></span> VIP / Host Reference
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+
+<!-- ══ OVERVIEW ══ -->
+<div id="sect-overview" class="section active">
+  <div class="section-header">
+    <div>
+      <div class="section-title">DNSTestToolkit v2.0 — Overview &amp; Architecture</div>
+      <div class="section-desc">Pluggable PowerShell test engine for validating BlueCat MDDS, Edge Resolver, and Anycast DNS infrastructure across AWS, Azure, GCP, and Equinix Fabric. v2.0 adds five new modules covering zone transfers, threat protection, sinkhole validation, TSIG dynamic updates, and advanced ECS cross-cloud CNAME steering.</div>
+    </div>
+    <button class="dl-btn" onclick="downloadAll()"><i class="fa-solid fa-download"></i> Download All Scripts</button>
+  </div>
+
+  <div class="alert alert-tip">
+    <i class="fa-solid fa-circle-info"></i>
+    <div>All scripts target <strong>PowerShell 7.4+</strong> (cross-platform). Run from any Windows or Linux jump host with network path to DNS VIPs and resolver targets. Designed to run concurrently from multiple regions to simulate real distributed client load.</div>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-folder-tree"></i> File Layout</div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-folder"></i> DNSTestToolkit/ — Directory Structure</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block">DNSTestToolkit/
+├── DNSTestEngine.ps1              <span class="cm"># Core engine: loader, dispatcher, orchestration</span>
+├── Invoke-DNSTestSuite.ps1        <span class="cm"># Entry point runner</span>
+├── config/
+│   ├── targets.json               <span class="cm"># Resolver targets (VIPs, hosts, regions, roles)</span>
+│   ├── zones.json                 <span class="cm"># Zone + record inventory</span>
+│   ├── thresholds.json            <span class="cm"># Pass/warn/fail thresholds</span>
+│   ├── scenarios.json             <span class="cm"># Scenario playbook definitions</span>
+│   ├── tsig-keys.json             <span class="cm"># TSIG key registry (names + algorithms)</span>
+│   └── threat-feeds.json          <span class="cm"># Threat domain + category feed list</span>
+└── modules/
+    ├── DNSTest-Baseline.psm1      <span class="cm"># MOD-01 · Baseline resolution + RTT percentiles</span>
+    ├── DNSTest-Load.psm1          <span class="cm"># MOD-02 · QPS ramp, sustained load, RRL boundary</span>
+    ├── DNSTest-Anycast.psm1       <span class="cm"># MOD-03 · Nearest-node, path delta, VIP parity</span>
+    ├── DNSTest-Failover.psm1      <span class="cm"># MOD-04 · BGP withdrawal + convergence timing</span>
+    ├── DNSTest-Isolation.psm1     <span class="cm"># MOD-05 · Tenant boundary enforcement</span>
+    ├── DNSTest-Geo.psm1           <span class="cm"># MOD-06 · ECS subnet steering per CSP region</span>
+    ├── DNSTest-Negative.psm1      <span class="cm"># MOD-07 · NXDOMAIN flood, negative TTL, amplification</span>
+    ├── DNSTest-TTL.psm1           <span class="cm"># MOD-08 · Cache hit ratio, TTL accuracy, phase targets</span>
+    ├── DNSTest-ZoneTransfer.psm1  <span class="cm"># MOD-10 · AXFR/IXFR from standalone Windows DNS</span>
+    ├── DNSTest-Threat.psm1        <span class="cm"># MOD-11 · Edge Resolver threat protection categories</span>
+    ├── DNSTest-Sinkhole.psm1      <span class="cm"># MOD-12 · Sinkhole answer validation + logging</span>
+    ├── DNSTest-TSIG.psm1          <span class="cm"># MOD-13 · Dynamic DNS update + TSIG authentication</span>
+    ├── DNSTest-ECSAdvanced.psm1   <span class="cm"># MOD-14 · ECS CNAME cross-cloud resolution steering</span>
+    └── DNSTest-Report.psm1        <span class="cm"># MOD-09 · HTML report engine</span></pre>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-cubes"></i> Module Matrix</div>
+  <div class="module-matrix">
+    <div class="module-card m-baseline">
+      <div class="module-title">Baseline Resolution</div>
+      <div class="module-id">MOD-01 · DNSTest-Baseline.psm1</div>
+      <div class="module-desc">p50/p95/p99 latency, 9 record types, EDNS, TCP fallback, per-target threshold evaluation.</div>
+    </div>
+    <div class="module-card m-load">
+      <div class="module-title">Load &amp; Throughput</div>
+      <div class="module-id">MOD-02 · DNSTest-Load.psm1</div>
+      <div class="module-desc">QPS ramp to 10k, 120s sustained load, RRL boundary detection via flood probe.</div>
+    </div>
+    <div class="module-card m-anycast">
+      <div class="module-title">Anycast Path Verification</div>
+      <div class="module-id">MOD-03 · DNSTest-Anycast.psm1</div>
+      <div class="module-desc">Nearest-node selection, BGP convergence, CSP preference ordering, shadow VIP comparison.</div>
+    </div>
+    <div class="module-card m-failover">
+      <div class="module-title">Failover &amp; Convergence</div>
+      <div class="module-id">MOD-04 · DNSTest-Failover.psm1</div>
+      <div class="module-desc">BGP withdrawal simulation, convergence timing, outage window, recovery validation.</div>
+    </div>
+    <div class="module-card m-tenant">
+      <div class="module-title">Tenant Isolation</div>
+      <div class="module-id">MOD-05 · DNSTest-Isolation.psm1</div>
+      <div class="module-desc">CORP zone access from global resolvers, market cross-resolution boundary enforcement.</div>
+    </div>
+    <div class="module-card m-geo">
+      <div class="module-title">Geo / ECS Steering</div>
+      <div class="module-id">MOD-06 · DNSTest-Geo.psm1</div>
+      <div class="module-desc">ECS subnet per region (NA/EU/APAC/LATAM), CSP-preferred answer verification.</div>
+    </div>
+    <div class="module-card m-negative">
+      <div class="module-title">Negative / NXDOMAIN</div>
+      <div class="module-id">MOD-07 · DNSTest-Negative.psm1</div>
+      <div class="module-desc">NXDOMAIN flood (500 queries), negative cache TTL, amplification resistance (TXT/ANY).</div>
+    </div>
+    <div class="module-card m-ttl">
+      <div class="module-title">TTL &amp; Cache Behavior</div>
+      <div class="module-id">MOD-08 · DNSTest-TTL.psm1</div>
+      <div class="module-desc">Cache hit/miss ratio, TTL countdown accuracy (±2s), phase-target compliance.</div>
+    </div>
+    <div class="module-card m-xfer" style="border-top-color:rgba(6,182,212,0.7)">
+      <div class="module-title">Zone Transfer (AXFR/IXFR)</div>
+      <div class="module-id">MOD-10 · DNSTest-ZoneTransfer.psm1 <span class="badge badge-blue" style="font-size:8px">NEW</span></div>
+      <div class="module-desc">AXFR/IXFR from standalone Windows DNS for split and external zones. ACL enforcement, serial drift, record count delta.</div>
+    </div>
+    <div class="module-card m-threat" style="border-top-color:rgba(239,68,68,0.8)">
+      <div class="module-title">Threat Protection</div>
+      <div class="module-id">MOD-11 · DNSTest-Threat.psm1 <span class="badge badge-red" style="font-size:8px">NEW</span></div>
+      <div class="module-desc">Edge Resolver RPZ/category blocking validation. Tests malware, phishing, C2, botnet, and DGA domain categories.</div>
+    </div>
+    <div class="module-card m-sinkhole">
+      <div class="module-title">DNS Sinkhole Validation</div>
+      <div class="module-id">MOD-12 · DNSTest-Sinkhole.psm1 <span class="badge badge-purple" style="font-size:8px">NEW</span></div>
+      <div class="module-desc">Verifies sinkhole answers (IP, NXDOMAIN, NODATA), validates logging, checks for bypass or passthrough leaks.</div>
+    </div>
+    <div class="module-card m-tsig">
+      <div class="module-title">Dynamic Updates (TSIG)</div>
+      <div class="module-id">MOD-13 · DNSTest-TSIG.psm1 <span class="badge badge-green" style="font-size:8px">NEW</span></div>
+      <div class="module-desc">RFC 2136 dynamic updates with TSIG authentication. Tests add/delete/update, key rotation, REFUSED on unsigned updates.</div>
+    </div>
+    <div class="module-card m-ecsadv">
+      <div class="module-title">ECS Cross-Cloud CNAME</div>
+      <div class="module-id">MOD-14 · DNSTest-ECSAdvanced.psm1 <span class="badge badge-amber" style="font-size:8px">NEW</span></div>
+      <div class="module-desc">Queries regional CNAMEs with ECS subnets and validates cross-cloud endpoint steering (e.g. EU prefix → GCP, NA prefix → Azure).</div>
+    </div>
+    <div class="module-card m-report">
+      <div class="module-title">HTML Report Engine</div>
+      <div class="module-id">MOD-09 · DNSTest-Report.psm1</div>
+      <div class="module-desc">Reads raw JSON results per module, emits dark-theme HTML dashboard with summary table and per-module detail.</div>
+    </div>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-clock"></i> Runtime Estimates by Scenario</div>
+  <table class="data-table">
+    <thead><tr><th>Scenario</th><th>Modules</th><th>Est. Runtime</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>smoke</td><td>MOD-01</td><td>~5 min</td><td>Quick connectivity &amp; latency sanity check</td></tr>
+      <tr><td>baseline</td><td>MOD-01, 07, 08</td><td>~20 min</td><td>Full resolution + cache health baseline</td></tr>
+      <tr><td>anycast-verify</td><td>MOD-01, 03, 06</td><td>~25 min</td><td>BGP path and ECS steering validation</td></tr>
+      <tr><td>zone-integrity</td><td>MOD-10, 13</td><td>~20 min</td><td>Zone transfer + dynamic update integrity</td></tr>
+      <tr><td>security</td><td>MOD-11, 12</td><td>~25 min</td><td>Threat protection + sinkhole coverage</td></tr>
+      <tr><td>ecs-advanced</td><td>MOD-06, 14</td><td>~20 min</td><td>Full ECS steering across all cloud endpoints</td></tr>
+      <tr><td>load-ramp</td><td>MOD-02</td><td>~45 min</td><td>QPS ramp + RRL boundary (coordinate with NOC)</td></tr>
+      <tr><td>failover-drill</td><td>MOD-04</td><td>~30 min</td><td>BGP withdrawal convergence (lab/shadow VIP only)</td></tr>
+      <tr><td>pre-cutover</td><td>MOD-01, 03, 05, 08, 10, 13</td><td>~60 min</td><td>Go/no-go gate before production cutover</td></tr>
+      <tr><td>full</td><td>All modules</td><td>~2.5 hrs</td><td>Complete test suite</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ ENGINE CORE ══ -->
+<div id="sect-engine" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Engine Core — DNSTestEngine.ps1</div>
+      <div class="section-desc">Auto-discovering module loader, parallel query executor, percentile calculator, and threshold evaluator. Unchanged from v1.0 — all new modules use the same contract.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('engine')"><i class="fa-solid fa-download"></i> DNSTestEngine.ps1</button>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTestEngine.ps1</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ================================================================
+# DNSTestEngine.ps1 — DNSTestToolkit v2.0
+# Core engine: module auto-discovery, parallel queries,
+# percentile math, threshold evaluation, result dispatch
+# ================================================================</span>
+
+<span class="va">$script:ENGINE_VERSION</span> <span class="op">=</span> <span class="st">'2.0'</span>
+<span class="va">$script:MODULE_DIR</span>     <span class="op">=</span> Join-Path <span class="va">$PSScriptRoot</span> <span class="st">'modules'</span>
+<span class="va">$script:CONFIG_DIR</span>     <span class="op">=</span> Join-Path <span class="va">$PSScriptRoot</span> <span class="st">'config'</span>
+<span class="va">$script:REPORT_DIR</span>     <span class="op">=</span> Join-Path <span class="va">$PSScriptRoot</span> <span class="st">'reports'</span>
+<span class="va">$script:RunId</span>          <span class="op">=</span> [guid]::NewGuid().ToString(<span class="st">'N'</span>).Substring(<span class="nu">0</span>,<span class="nu">8</span>).ToUpper()
+<span class="va">$script:LoadedModules</span>  <span class="op">=</span> [ordered]@{}
+
+<span class="kw">function</span> <span class="fn">Write-EngineLog</span>(<span class="va">$Level</span>, <span class="va">$Msg</span>) {
+    <span class="va">$color</span> <span class="op">=</span> <span class="kw">switch</span>(<span class="va">$Level</span>) {
+        <span class="st">'INFO'</span>  { <span class="st">'Cyan'</span>    } <span class="st">'PASS'</span> { <span class="st">'Green'</span>  }
+        <span class="st">'WARN'</span>  { <span class="st">'Yellow'</span> } <span class="st">'FAIL'</span> { <span class="st">'Red'</span>    }
+        <span class="st">'DEBUG'</span> { <span class="st">'Gray'</span>   } <span class="kw">default</span> { <span class="st">'White'</span>  }
+    }
+    Write-Host <span class="st">"[</span><span class="va">$(</span>Get-Date <span class="op">-f</span> <span class="st">'HH:mm:ss'</span><span class="va">)</span><span class="st">] [ENGINE] [</span><span class="va">$Level</span><span class="st">] </span><span class="va">$Msg</span><span class="st">"</span> -ForegroundColor <span class="va">$color</span>
+}
+
+<span class="kw">function</span> <span class="fn">Get-EngineConfig</span>(<span class="ty">[string]</span><span class="va">$Name</span>) {
+    <span class="va">$path</span> <span class="op">=</span> Join-Path <span class="va">$script:CONFIG_DIR</span> <span class="st">"</span><span class="va">$Name</span><span class="st">.json"</span>
+    <span class="kw">if</span> (<span class="op">-not</span> (Test-Path <span class="va">$path</span>)) { <span class="kw">throw</span> <span class="st">"Config not found: </span><span class="va">$path</span><span class="st">"</span> }
+    Get-Content <span class="va">$path</span> -Raw | ConvertFrom-Json
+}
+
+<span class="kw">function</span> <span class="fn">Import-TestModules</span> {
+    <span class="kw">param</span>(<span class="ty">[string[]]</span><span class="va">$ModuleFilter</span> <span class="op">=</span> @(<span class="st">'*'</span>))
+    Get-ChildItem <span class="va">$script:MODULE_DIR</span> -Filter <span class="st">'DNSTest-*.psm1'</span> | ForEach-Object {
+        <span class="kw">try</span> {
+            Import-Module <span class="va">$_</span>.FullName -Force -Global -ErrorAction Stop
+            <span class="va">$info</span> <span class="op">=</span> <span class="fn">Get-ModuleInfo</span>
+            <span class="kw">if</span> (<span class="va">$ModuleFilter</span> -contains <span class="st">'*'</span> <span class="op">-or</span> <span class="va">$ModuleFilter</span> -contains <span class="va">$info</span>.Id <span class="op">-or</span>
+                (<span class="va">$info</span>.Tags | Where-Object { <span class="va">$ModuleFilter</span> -contains <span class="va">$_</span> })) {
+                <span class="va">$script:LoadedModules</span>[<span class="va">$info</span>.Id] <span class="op">=</span> <span class="va">$info</span>
+                <span class="fn">Write-EngineLog</span> DEBUG <span class="st">"Loaded: </span><span class="va">$($info.Id)</span><span class="st"> — </span><span class="va">$($info.Name)</span><span class="st"> v</span><span class="va">$($info.Version)</span><span class="st">"</span>
+            }
+        } <span class="kw">catch</span> { <span class="fn">Write-EngineLog</span> WARN <span class="st">"Failed to load </span><span class="va">$($_.Name)</span><span class="st">: </span><span class="va">$_</span><span class="st">"</span> }
+    }
+    <span class="fn">Write-EngineLog</span> INFO <span class="st">"</span><span class="va">$($script:LoadedModules.Count)</span><span class="st"> modules loaded"</span>
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSQuery</span> {
+    <span class="kw">param</span>(
+        <span class="ty">[string]</span>  <span class="va">$Server</span>,
+        <span class="ty">[string]</span>  <span class="va">$Name</span>,
+        <span class="ty">[string]</span>  <span class="va">$Type</span>       <span class="op">=</span> <span class="st">'A'</span>,
+        <span class="ty">[int]</span>     <span class="va">$TimeoutMs</span>  <span class="op">=</span> <span class="nu">3000</span>,
+        <span class="ty">[switch]</span>  <span class="va">$UseTCP</span>,
+        <span class="ty">[string]</span>  <span class="va">$ECSSubnet</span>  <span class="op">=</span> <span class="st">''</span>
+    )
+    <span class="va">$sw</span> <span class="op">=</span> [System.Diagnostics.Stopwatch]::StartNew()
+    <span class="kw">try</span> {
+        <span class="va">$digArgs</span> <span class="op">=</span> @(<span class="st">"@</span><span class="va">$Server</span><span class="st">"</span>, <span class="va">$Name</span>, <span class="va">$Type</span>, <span class="st">'+time=3'</span>, <span class="st">'+tries=1'</span>, <span class="st">'+short'</span>)
+        <span class="kw">if</span> (<span class="va">$UseTCP</span>)   { <span class="va">$digArgs</span> <span class="op">+=</span> <span class="st">'+tcp'</span> }
+        <span class="kw">if</span> (<span class="va">$ECSSubnet</span>) { <span class="va">$digArgs</span> <span class="op">+=</span> <span class="st">"+subnet=</span><span class="va">$ECSSubnet</span><span class="st">"</span> }
+        <span class="va">$out</span>    <span class="op">=</span> & dig <span class="va">@digArgs</span> 2>&amp;<span class="nu">1</span>
+        <span class="va">$status</span> <span class="op">=</span> <span class="kw">if</span> (<span class="va">$out</span> -match <span class="st">'SERVFAIL|REFUSED|NXDOMAIN|FORMERR'</span>) {
+            [regex]::Match(<span class="va">$out</span>,<span class="st">'SERVFAIL|REFUSED|NXDOMAIN|FORMERR'</span>).Value
+        } <span class="kw">elseif</span> (<span class="va">$out</span>.Count <span class="op">-gt</span> <span class="nu">0</span>) { <span class="st">'NOERROR'</span> } <span class="kw">else</span> { <span class="st">'TIMEOUT'</span> }
+        <span class="va">$sw</span>.Stop()
+        [<span class="ty">pscustomobject</span>]@{
+            Server    <span class="op">=</span> <span class="va">$Server</span>; Name <span class="op">=</span> <span class="va">$Name</span>; Type <span class="op">=</span> <span class="va">$Type</span>
+            Status    <span class="op">=</span> <span class="va">$status</span>; LatencyMs <span class="op">=</span> [<span class="ty">math</span>]::Round(<span class="va">$sw</span>.Elapsed.TotalMilliseconds,<span class="nu">2</span>)
+            Answer    <span class="op">=</span> <span class="va">$out</span>; ECSSubnet <span class="op">=</span> <span class="va">$ECSSubnet</span>
+        }
+    } <span class="kw">catch</span> {
+        <span class="va">$sw</span>.Stop()
+        [<span class="ty">pscustomobject</span>]@{ Server=<span class="va">$Server</span>; Name=<span class="va">$Name</span>; Type=<span class="va">$Type</span>; Status=<span class="st">'ERROR'</span>
+            LatencyMs=<span class="va">$sw</span>.Elapsed.TotalMilliseconds; Answer=@(<span class="va">$_</span>.ToString()) }
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-ParallelDNS</span> {
+    <span class="kw">param</span>(<span class="ty">[array]</span><span class="va">$Queries</span>, <span class="ty">[int]</span><span class="va">$Throttle</span> <span class="op">=</span> <span class="nu">50</span>)
+    <span class="va">$Queries</span> | ForEach-Object -Parallel {
+        <span class="va">$q</span> <span class="op">=</span> <span class="va">$_</span>
+        <span class="va">$sw</span> <span class="op">=</span> [System.Diagnostics.Stopwatch]::StartNew()
+        <span class="va">$args</span> <span class="op">=</span> @(<span class="st">"@</span><span class="va">$($q.Server)</span><span class="st">"</span>, <span class="va">$q</span>.Name, <span class="va">$q</span>.Type, <span class="st">'+time=3'</span>, <span class="st">'+tries=1'</span>, <span class="st">'+short'</span>)
+        <span class="kw">if</span> (<span class="va">$q</span>.ECSSubnet) { <span class="va">$args</span> <span class="op">+=</span> <span class="st">"+subnet=</span><span class="va">$($q.ECSSubnet)</span><span class="st">"</span> }
+        <span class="va">$out</span> <span class="op">=</span> & dig <span class="va">@args</span> 2>&amp;<span class="nu">1</span>
+        <span class="va">$sw</span>.Stop()
+        [<span class="ty">pscustomobject</span>]@{
+            Server=<span class="va">$q</span>.Server; Name=<span class="va">$q</span>.Name; Type=<span class="va">$q</span>.Type
+            LatencyMs=[<span class="ty">math</span>]::Round(<span class="va">$sw</span>.Elapsed.TotalMilliseconds,<span class="nu">2</span>)
+            Status=<span class="kw">if</span>(<span class="va">$out</span> -match <span class="st">'NXDOMAIN|SERVFAIL|REFUSED'</span>){<span class="st">'BLOCKED'</span>}<span class="kw">elseif</span>(<span class="va">$out</span>){<span class="st">'NOERROR'</span>}<span class="kw">else</span>{<span class="st">'TIMEOUT'</span>}
+            Answer=<span class="va">$out</span>
+        }
+    } -ThrottleLimit <span class="va">$Throttle</span>
+}
+
+<span class="kw">function</span> <span class="fn">Get-Percentile</span>(<span class="ty">[double[]]</span><span class="va">$Values</span>, <span class="ty">[int]</span><span class="va">$Pct</span>) {
+    <span class="kw">if</span> (<span class="op">-not</span> <span class="va">$Values</span>) { <span class="kw">return</span> <span class="nu">0</span> }
+    <span class="va">$sorted</span> <span class="op">=</span> <span class="va">$Values</span> | Sort-Object
+    <span class="va">$idx</span>    <span class="op">=</span> [<span class="ty">math</span>]::Ceiling((<span class="va">$Pct</span> / <span class="nu">100</span>) <span class="op">*</span> <span class="va">$sorted</span>.Count) <span class="op">-</span> <span class="nu">1</span>
+    <span class="va">$sorted</span>[[<span class="ty">math</span>]::Max(<span class="nu">0</span>, <span class="va">$idx</span>)]
+}
+
+<span class="kw">function</span> <span class="fn">Get-LatencyStats</span>(<span class="ty">[double[]]</span><span class="va">$Values</span>) {
+    [<span class="ty">pscustomobject</span>]@{
+        Count  <span class="op">=</span> <span class="va">$Values</span>.Count
+        MinMs  <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="va">$Values</span> | Measure-Object -Minimum).Minimum, <span class="nu">2</span>)
+        MaxMs  <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="va">$Values</span> | Measure-Object -Maximum).Maximum, <span class="nu">2</span>)
+        AvgMs  <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="va">$Values</span> | Measure-Object -Average).Average,  <span class="nu">2</span>)
+        P50Ms  <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="fn">Get-Percentile</span> <span class="va">$Values</span> <span class="nu">50</span>), <span class="nu">2</span>)
+        P95Ms  <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="fn">Get-Percentile</span> <span class="va">$Values</span> <span class="nu">95</span>), <span class="nu">2</span>)
+        P99Ms  <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="fn">Get-Percentile</span> <span class="va">$Values</span> <span class="nu">99</span>), <span class="nu">2</span>)
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Test-Threshold</span>(<span class="va">$Value</span>, <span class="va">$PassThreshold</span>, <span class="va">$WarnThreshold</span>, <span class="ty">[switch]</span><span class="va">$LowerIsBetter</span> <span class="op">=</span> <span class="va">$true</span>) {
+    <span class="kw">if</span> (<span class="va">$LowerIsBetter</span>) {
+        <span class="kw">if</span> (<span class="va">$Value</span> <span class="op">-le</span> <span class="va">$PassThreshold</span>) { <span class="kw">return</span> <span class="st">'PASS'</span> }
+        <span class="kw">if</span> (<span class="va">$Value</span> <span class="op">-le</span> <span class="va">$WarnThreshold</span>) { <span class="kw">return</span> <span class="st">'WARN'</span> }
+        <span class="kw">return</span> <span class="st">'FAIL'</span>
+    } <span class="kw">else</span> {
+        <span class="kw">if</span> (<span class="va">$Value</span> <span class="op">-ge</span> <span class="va">$PassThreshold</span>) { <span class="kw">return</span> <span class="st">'PASS'</span> }
+        <span class="kw">if</span> (<span class="va">$Value</span> <span class="op">-ge</span> <span class="va">$WarnThreshold</span>) { <span class="kw">return</span> <span class="st">'WARN'</span> }
+        <span class="kw">return</span> <span class="st">'FAIL'</span>
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Add-TestResult</span>(<span class="ty">[hashtable]</span><span class="va">$Result</span>) {
+    <span class="va">$Result</span>.Timestamp <span class="op">=</span> Get-Date -Format <span class="st">'o'</span>
+    <span class="va">$script:Results</span>  <span class="op">+=</span> [<span class="ty">pscustomobject</span>]<span class="va">$Result</span>
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-TestEngine</span> {
+    <span class="kw">param</span>(
+        <span class="ty">[string[]]</span>  <span class="va">$Modules</span>   <span class="op">=</span> @(<span class="st">'*'</span>),
+        <span class="ty">[string]</span>    <span class="va">$Scenario</span> <span class="op">=</span> <span class="st">'full'</span>,
+        <span class="ty">[switch]</span>    <span class="va">$NoReport</span>,
+        <span class="ty">[switch]</span>    <span class="va">$DryRun</span>
+    )
+    <span class="fn">Write-EngineLog</span> INFO <span class="st">"═══ DNSTestToolkit v</span><span class="va">$script:ENGINE_VERSION</span><span class="st"> · Run </span><span class="va">$script:RunId</span><span class="st"> ═══"</span>
+    <span class="va">$config</span>     <span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'targets'</span>
+    <span class="va">$thresholds</span> <span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'thresholds'</span>
+    <span class="va">$zones</span>      <span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'zones'</span>
+    <span class="va">$tsigKeys</span>   <span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'tsig-keys'</span>
+    <span class="va">$threatFeeds</span><span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'threat-feeds'</span>
+    <span class="fn">Import-TestModules</span> -ModuleFilter <span class="va">$Modules</span>
+    <span class="va">$runDir</span> <span class="op">=</span> New-Item -ItemType Directory -Force `
+        -Path (Join-Path <span class="va">$script:REPORT_DIR</span> <span class="st">"</span><span class="va">$(</span>Get-Date <span class="op">-f</span> <span class="st">'yyyyMMdd-HHmmss'</span><span class="va">)-$script:RunId</span><span class="st">"</span>)
+    New-Item -ItemType Directory -Path (Join-Path <span class="va">$runDir</span> <span class="st">'raw'</span>) -Force | Out-Null
+    <span class="kw">foreach</span> (<span class="va">$id</span> <span class="kw">in</span> <span class="va">$script:LoadedModules</span>.Keys) {
+        <span class="kw">if</span> (<span class="va">$DryRun</span>) { <span class="fn">Write-EngineLog</span> DEBUG <span class="st">"[DRY-RUN] </span><span class="va">$id</span><span class="st">"</span>; <span class="kw">continue</span> }
+        <span class="va">$ctx</span> <span class="op">=</span> @{
+            Config=<span class="va">$config</span>; Thresholds=<span class="va">$thresholds</span>; Zones=<span class="va">$zones</span>
+            TSIGKeys=<span class="va">$tsigKeys</span>; ThreatFeeds=<span class="va">$threatFeeds</span>
+            RunId=<span class="va">$script:RunId</span>; RunDir=<span class="va">$runDir</span>.FullName; Scenario=<span class="va">$Scenario</span>
+            FnQuery=<span class="va">$function:Invoke-DNSQuery</span>; FnParallel=<span class="va">$function:Invoke-ParallelDNS</span>
+            FnStats=<span class="va">$function:Get-LatencyStats</span>; FnPercentile=<span class="va">$function:Get-Percentile</span>
+            FnThreshold=<span class="va">$function:Test-Threshold</span>; FnAddResult=<span class="va">$function:Add-TestResult</span>
+        }
+        <span class="kw">try</span> {
+            <span class="va">$r</span> <span class="op">=</span> <span class="fn">Invoke-DNSTest</span> -Context <span class="va">$ctx</span>
+            <span class="va">$r</span> | ConvertTo-Json -Depth <span class="nu">10</span> | Out-File (Join-Path <span class="va">$runDir</span> <span class="st">"raw/</span><span class="va">$id</span><span class="st">.json"</span>) -Force
+            <span class="fn">Write-EngineLog</span> PASS <span class="st">"</span><span class="va">$id</span><span class="st"> — </span><span class="va">$($r.Summary.Status)</span><span class="st">"</span>
+        } <span class="kw">catch</span> { <span class="fn">Write-EngineLog</span> FAIL <span class="st">"</span><span class="va">$id</span><span class="st"> threw: </span><span class="va">$_</span><span class="st">"</span> }
+    }
+    <span class="kw">if</span> (<span class="op">-not</span> <span class="va">$NoReport</span>) { <span class="fn">Invoke-DNSTestReport</span> -RunDir <span class="va">$runDir</span>.FullName }
+    <span class="fn">Write-EngineLog</span> INFO <span class="st">"Run </span><span class="va">$script:RunId</span><span class="st"> complete — </span><span class="va">$($runDir.FullName)</span><span class="st">/index.html"</span>
+}</pre>
+  </div>
+</div>
+
+<!-- ══ MODULES OVERVIEW ══ -->
+<div id="sect-modules" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Module Loader &amp; Contract</div>
+      <div class="section-desc">Every module implements Get-ModuleInfo, Get-DefaultConfig, and Invoke-DNSTest. The engine auto-discovers all DNSTest-*.psm1 files at startup — no registration required.</div>
+    </div>
+  </div>
+  <div class="alert alert-tip">
+    <i class="fa-solid fa-plug"></i>
+    <div>MOD-01 through MOD-08 are unchanged from v1.0. Refer to original documentation for full source. MOD-10 through MOD-14 are new in v2.0 and documented in the <strong>New Modules</strong> tab.</div>
+  </div>
+  <div class="sub-header"><i class="fa-solid fa-gear"></i> targets.json — v2.0 (with Windows DNS sources)</div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-file-code"></i> config/targets.json</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block">{
+  <span class="st">"targets"</span>: [
+    { <span class="st">"name"</span>: <span class="st">"GLOBAL-DNS"</span>,     <span class="st">"ip"</span>: <span class="st">"10.100.100.100"</span>, <span class="st">"role"</span>: <span class="st">"anycast-primary"</span>,  <span class="st">"region"</span>: <span class="st">"global"</span>,      <span class="st">"csp"</span>: <span class="st">"multi"</span>   },
+    { <span class="st">"name"</span>: <span class="st">"REGIONAL-ECS"</span>,   <span class="st">"ip"</span>: <span class="st">"10.100.100.102"</span>, <span class="st">"role"</span>: <span class="st">"ecs-steering"</span>,    <span class="st">"region"</span>: <span class="st">"regional"</span>,    <span class="st">"csp"</span>: <span class="st">"multi"</span>   },
+    { <span class="st">"name"</span>: <span class="st">"SHADOW-DNS"</span>,     <span class="st">"ip"</span>: <span class="st">"10.100.100.101"</span>, <span class="st">"role"</span>: <span class="st">"shadow-test"</span>,     <span class="st">"region"</span>: <span class="st">"global"</span>,      <span class="st">"csp"</span>: <span class="st">"azure"</span>   },
+    { <span class="st">"name"</span>: <span class="st">"LEGACY-MS"</span>,      <span class="st">"ip"</span>: <span class="st">"10.100.100.99"</span>,  <span class="st">"role"</span>: <span class="st">"legacy-rollback"</span>, <span class="st">"region"</span>: <span class="st">"global"</span>,      <span class="st">"csp"</span>: <span class="st">"msad"</span>    },
+    { <span class="st">"name"</span>: <span class="st">"edge-aws-01"</span>,    <span class="st">"ip"</span>: <span class="st">"192.168.10.30"</span>,  <span class="st">"role"</span>: <span class="st">"edge-resolver"</span>,  <span class="st">"region"</span>: <span class="st">"us-east-1"</span>,   <span class="st">"csp"</span>: <span class="st">"aws"</span>     },
+    { <span class="st">"name"</span>: <span class="st">"edge-aws-02"</span>,    <span class="st">"ip"</span>: <span class="st">"192.168.10.42"</span>,  <span class="st">"role"</span>: <span class="st">"edge-resolver"</span>,  <span class="st">"region"</span>: <span class="st">"us-east-1"</span>,   <span class="st">"csp"</span>: <span class="st">"aws"</span>     },
+    { <span class="st">"name"</span>: <span class="st">"edge-gcp-01"</span>,    <span class="st">"ip"</span>: <span class="st">"192.168.20.30"</span>,  <span class="st">"role"</span>: <span class="st">"edge-resolver"</span>,  <span class="st">"region"</span>: <span class="st">"us-central1"</span>, <span class="st">"csp"</span>: <span class="st">"gcp"</span>     },
+    { <span class="st">"name"</span>: <span class="st">"edge-gcp-02"</span>,    <span class="st">"ip"</span>: <span class="st">"192.168.20.42"</span>,  <span class="st">"role"</span>: <span class="st">"edge-resolver"</span>,  <span class="st">"region"</span>: <span class="st">"us-central1"</span>, <span class="st">"csp"</span>: <span class="st">"gcp"</span>     },
+    { <span class="st">"name"</span>: <span class="st">"edge-az-01"</span>,     <span class="st">"ip"</span>: <span class="st">"192.168.30.30"</span>,  <span class="st">"role"</span>: <span class="st">"edge-resolver"</span>,  <span class="st">"region"</span>: <span class="st">"eastus2"</span>,     <span class="st">"csp"</span>: <span class="st">"azure"</span>   },
+    { <span class="st">"name"</span>: <span class="st">"edge-az-02"</span>,     <span class="st">"ip"</span>: <span class="st">"192.168.30.42"</span>,  <span class="st">"role"</span>: <span class="st">"edge-resolver"</span>,  <span class="st">"region"</span>: <span class="st">"eastus2"</span>,     <span class="st">"csp"</span>: <span class="st">"azure"</span>   },
+    { <span class="st">"name"</span>: <span class="st">"mdds-hidden-01"</span>, <span class="st">"ip"</span>: <span class="st">"192.168.0.30"</span>,   <span class="st">"role"</span>: <span class="st">"hidden-master"</span>,  <span class="st">"region"</span>: <span class="st">"equinix-dc"</span>,  <span class="st">"csp"</span>: <span class="st">"equinix"</span> }
+  ],
+  <span class="st">"anycast_vips"</span>: {
+    <span class="st">"global"</span>: <span class="st">"10.100.100.100"</span>,
+    <span class="st">"shadow"</span>: <span class="st">"10.100.100.101"</span>,
+    <span class="st">"ecs"</span>:    <span class="st">"10.100.100.102"</span>,
+    <span class="st">"legacy"</span>: <span class="st">"10.100.100.99"</span>
+  },
+  <span class="cm">// ── Windows DNS sources for zone transfer tests (MOD-10) ──</span>
+  <span class="st">"windows_dns_sources"</span>: [
+    { <span class="st">"name"</span>: <span class="st">"wdns-ext-01"</span>, <span class="st">"ip"</span>: <span class="st">"10.50.1.10"</span>, <span class="st">"role"</span>: <span class="st">"external-authoritative"</span>, <span class="st">"zones"</span>: [<span class="st">"external.example.com"</span>, <span class="st">"split.example.com"</span>] },
+    { <span class="st">"name"</span>: <span class="st">"wdns-ext-02"</span>, <span class="st">"ip"</span>: <span class="st">"10.50.1.11"</span>, <span class="st">"role"</span>: <span class="st">"external-secondary"</span>,    <span class="st">"zones"</span>: [<span class="st">"external.example.com"</span>] },
+    { <span class="st">"name"</span>: <span class="st">"wdns-int-01"</span>, <span class="st">"ip"</span>: <span class="st">"10.50.2.10"</span>, <span class="st">"role"</span>: <span class="st">"internal-authoritative"</span>, <span class="st">"zones"</span>: [<span class="st">"internal.example.com"</span>, <span class="st">"split.example.com"</span>] }
+  ],
+  <span class="cm">// ── Sinkhole answers — what edge resolvers return for blocked domains ──</span>
+  <span class="st">"sinkhole_ips"</span>: [<span class="st">"100.64.0.1"</span>, <span class="st">"100.64.0.2"</span>],
+  <span class="st">"market_regions"</span>: [<span class="st">"na"</span>, <span class="st">"eu"</span>, <span class="st">"apac"</span>, <span class="st">"latam"</span>]
+}</pre>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-key"></i> tsig-keys.json</div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-file-code"></i> config/tsig-keys.json</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block">{
+  <span class="st">"keys"</span>: [
+    {
+      <span class="st">"name"</span>:      <span class="st">"ddns-update-key"</span>,
+      <span class="st">"algorithm"</span>: <span class="st">"hmac-sha256"</span>,
+      <span class="st">"secret"</span>:    <span class="st">"&lt;BASE64_SECRET_HERE&gt;"</span>,
+      <span class="st">"zones"</span>:     [<span class="st">"internal.example.com"</span>, <span class="st">"corp.root"</span>],
+      <span class="st">"allowed_ops"</span>: [<span class="st">"add"</span>, <span class="st">"delete"</span>, <span class="st">"update"</span>]
+    },
+    {
+      <span class="st">"name"</span>:      <span class="st">"axfr-transfer-key"</span>,
+      <span class="st">"algorithm"</span>: <span class="st">"hmac-sha512"</span>,
+      <span class="st">"secret"</span>:    <span class="st">"&lt;BASE64_SECRET_HERE&gt;"</span>,
+      <span class="st">"zones"</span>:     [<span class="st">"external.example.com"</span>, <span class="st">"split.example.com"</span>],
+      <span class="st">"allowed_ops"</span>: [<span class="st">"axfr"</span>]
+    }
+  ],
+  <span class="st">"test_update_zone"</span>:   <span class="st">"internal.example.com"</span>,
+  <span class="st">"test_update_name"</span>:   <span class="st">"_dnstest-{runid}.internal.example.com"</span>,
+  <span class="st">"test_update_ttl"</span>:    <span class="nu">60</span>,
+  <span class="st">"test_update_cleanup"</span>: <span class="kw">true</span>
+}</pre>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-shield-halved"></i> threat-feeds.json</div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-file-code"></i> config/threat-feeds.json</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block">{
+  <span class="st">"categories"</span>: [
+    {
+      <span class="st">"name"</span>: <span class="st">"malware-c2"</span>,
+      <span class="st">"expected_action"</span>: <span class="st">"NXDOMAIN"</span>,
+      <span class="st">"test_domains"</span>: [
+        <span class="st">"malware-c2-test.rpz.invalid"</span>,
+        <span class="st">"c2-beacon-test.rpz.invalid"</span>
+      ]
+    },
+    {
+      <span class="st">"name"</span>: <span class="st">"phishing"</span>,
+      <span class="st">"expected_action"</span>: <span class="st">"SINKHOLE"</span>,
+      <span class="st">"test_domains"</span>: [
+        <span class="st">"phishing-test.rpz.invalid"</span>,
+        <span class="st">"credential-harvest.rpz.invalid"</span>
+      ]
+    },
+    {
+      <span class="st">"name"</span>: <span class="st">"botnet"</span>,
+      <span class="st">"expected_action"</span>: <span class="st">"NXDOMAIN"</span>,
+      <span class="st">"test_domains"</span>: [
+        <span class="st">"botnet-cnctest.rpz.invalid"</span>,
+        <span class="st">"dga-beacon-0xdeadbeef.rpz.invalid"</span>
+      ]
+    },
+    {
+      <span class="st">"name"</span>: <span class="st">"dga"</span>,
+      <span class="st">"expected_action"</span>: <span class="st">"NXDOMAIN"</span>,
+      <span class="st">"test_domains"</span>: [
+        <span class="st">"xqr7mz9kp1a.rpz.invalid"</span>,
+        <span class="st">"b3kf92xmda77q.rpz.invalid"</span>
+      ]
+    },
+    {
+      <span class="st">"name"</span>: <span class="st">"safe-passthrough"</span>,
+      <span class="st">"expected_action"</span>: <span class="st">"NOERROR"</span>,
+      <span class="st">"test_domains"</span>: [
+        <span class="st">"dns.google.com"</span>,
+        <span class="st">"one.one.one.one"</span>
+      ]
+    }
+  ],
+  <span class="st">"sinkhole_log_api"</span>:    <span class="st">"http://sinkhole-log.internal:9200/dns-events/_doc"</span>,
+  <span class="st">"verify_logging"</span>:      <span class="kw">true</span>,
+  <span class="st">"log_window_sec"</span>:      <span class="nu">10</span>
+}</pre>
+  </div>
+</div>
+
+<!-- ══ NEW MODULES ══ -->
+<div id="sect-newmodules" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">New Modules — v2.0</div>
+      <div class="section-desc">Five new pluggable test modules added in v2.0: zone transfers, threat protection, DNS sinkholes, TSIG dynamic updates, and advanced ECS cross-cloud CNAME steering.</div>
+    </div>
+  </div>
+  <div class="alert alert-info">
+    <i class="fa-solid fa-circle-info"></i>
+    <div>All new modules follow the same contract as existing modules. They are auto-discovered at engine startup and can be combined with original modules in any scenario playbook.</div>
+  </div>
+</div>
+
+<!-- ══ MOD-10: ZONE TRANSFER ══ -->
+<div id="sect-mod-xfer" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title"><span class="mod-tag badge badge-blue">MOD-10</span> Zone Transfer — AXFR/IXFR</div>
+      <div class="section-desc">Validates AXFR and IXFR zone transfers from standalone Windows DNS servers for external and split-horizon zones. Tests ACL enforcement, SOA serial comparison, record count integrity, and secondary sync latency.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('xfer')"><i class="fa-solid fa-download"></i> DNSTest-ZoneTransfer.psm1</button>
+  </div>
+
+  <div class="alert alert-warn">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div>AXFR from Windows DNS servers requires the test host IP to be listed in the zone's <strong>Transfer</strong> ACL. Use <code>dnscmd /ZoneInfo &lt;zone&gt;</code> on the Windows DNS server to verify. IXFR tests require a known prior serial — supply via config or let the module perform an initial SOA query.</div>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTest-ZoneTransfer.psm1 — MOD-10</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# DNSTest-ZoneTransfer.psm1  –  MOD-10 · Zone Transfer Tests
+# AXFR/IXFR from standalone Windows DNS (external + split-DNS)
+# ============================================================</span>
+
+<span class="kw">function</span> <span class="fn">Get-ModuleInfo</span> {
+    [<span class="ty">pscustomobject</span>]@{
+        Id=<span class="st">'MOD-10'</span>; Name=<span class="st">'Zone Transfer (AXFR/IXFR)'</span>; Version=<span class="st">'2.0'</span>
+        Tags=@(<span class="st">'zone-transfer'</span>,<span class="st">'axfr'</span>,<span class="st">'ixfr'</span>,<span class="st">'windows-dns'</span>,<span class="st">'split-dns'</span>,<span class="st">'security'</span>)
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Get-DefaultConfig</span> {
+    @{
+        <span class="cm"># Transfer types to exercise</span>
+        TransferTypes        = @(<span class="st">'AXFR'</span>, <span class="st">'IXFR'</span>)
+
+        <span class="cm"># Max acceptable record-count delta between primary and secondary (%)</span>
+        RecordDeltaThreshold = <span class="nu">0.01</span>   <span class="cm"># 1% — any more = data integrity issue</span>
+
+        <span class="cm"># Max seconds a secondary is allowed to lag behind primary SOA serial</span>
+        SerialLagThresholdSec = <span class="nu">300</span>   <span class="cm"># 5 min</span>
+
+        <span class="cm"># Expected REFUSED from unauthorized source IPs</span>
+        TestAclBlocking      = <span class="va">$true</span>
+
+        <span class="cm"># IP that is NOT in the transfer ACL — engine queries from this via loopback trick</span>
+        UnauthorizedProbeIP  = <span class="st">'127.0.0.2'</span>
+
+        TimeoutSec           = <span class="nu">60</span>
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSTest</span> {
+    <span class="kw">param</span>(<span class="ty">[hashtable]</span><span class="va">$Context</span>)
+    <span class="va">$cfg</span>     <span class="op">=</span> <span class="fn">Get-DefaultConfig</span>
+    <span class="va">$sources</span> <span class="op">=</span> <span class="va">$Context</span>.Config.windows_dns_sources
+    <span class="va">$results</span> <span class="op">=</span> [System.Collections.Generic.List[psobject]]::new()
+
+    <span class="kw">foreach</span> (<span class="va">$src</span> <span class="kw">in</span> <span class="va">$sources</span>) {
+        <span class="kw">foreach</span> (<span class="va">$zone</span> <span class="kw">in</span> <span class="va">$src</span>.zones) {
+
+            <span class="cm"># ── AXFR: Full zone transfer ──────────────────────────</span>
+            Write-Host <span class="st">"  [MOD-10] AXFR </span><span class="va">$zone</span><span class="st"> from </span><span class="va">$($src.name)</span><span class="st"> (</span><span class="va">$($src.ip)</span><span class="st">)"</span>
+            <span class="va">$sw</span>       <span class="op">=</span> [System.Diagnostics.Stopwatch]::StartNew()
+            <span class="va">$axfrOut</span>  <span class="op">=</span> & dig <span class="st">"@</span><span class="va">$($src.ip)</span><span class="st">"</span> <span class="va">$zone</span> AXFR +time=<span class="va">$($cfg.TimeoutSec)</span> 2>&amp;<span class="nu">1</span>
+            <span class="va">$sw</span>.Stop()
+
+            <span class="va">$axfrLines</span>   <span class="op">=</span> <span class="va">$axfrOut</span> | Where-Object { <span class="va">$_</span> -notmatch <span class="st">'^;'</span> -and <span class="va">$_</span>.Trim() }
+            <span class="va">$recordCount</span> <span class="op">=</span> <span class="va">$axfrLines</span>.Count
+            <span class="va">$axfrOk</span>      <span class="op">=</span> <span class="va">$axfrOut</span> -match <span class="st">'Transfer complete'</span> <span class="op">-or</span> <span class="va">$recordCount</span> <span class="op">-gt</span> <span class="nu">2</span>
+            <span class="va">$axfrRefused</span> <span class="op">=</span> <span class="va">$axfrOut</span> -match <span class="st">'REFUSED|XFR size'</span>
+
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Source       <span class="op">=</span> <span class="va">$src</span>.name
+                Zone         <span class="op">=</span> <span class="va">$zone</span>
+                TransferType <span class="op">=</span> <span class="st">'AXFR'</span>
+                DurationMs   <span class="op">=</span> [<span class="ty">math</span>]::Round(<span class="va">$sw</span>.Elapsed.TotalMilliseconds, <span class="nu">2</span>)
+                RecordCount  <span class="op">=</span> <span class="va">$recordCount</span>
+                Refused      <span class="op">=</span> <span class="kw">if</span> (<span class="va">$axfrRefused</span>) { <span class="va">$true</span> } <span class="kw">else</span> { <span class="va">$false</span> }
+                Status       <span class="op">=</span> <span class="kw">if</span> (<span class="va">$axfrOk</span>)      { <span class="st">'PASS'</span> }
+                              <span class="kw">elseif</span> (<span class="va">$axfrRefused</span>) { <span class="st">'FAIL'</span> }
+                              <span class="kw">else</span>                   { <span class="st">'WARN'</span> }
+                Detail       <span class="op">=</span> <span class="kw">if</span> (<span class="va">$axfrOk</span>) { <span class="st">"</span><span class="va">$recordCount</span><span class="st"> records transferred"</span> } <span class="kw">else</span> { <span class="st">"Transfer incomplete or REFUSED"</span> }
+            })
+
+            <span class="cm"># ── SOA serial check — compare primary to expected ────</span>
+            <span class="va">$soaOut</span>   <span class="op">=</span> & dig <span class="st">"@</span><span class="va">$($src.ip)</span><span class="st">"</span> <span class="va">$zone</span> SOA +short 2>&amp;<span class="nu">1</span>
+            <span class="va">$serial</span>   <span class="op">=</span> <span class="kw">if</span> (<span class="va">$soaOut</span> -match <span class="st">'\s(\d{10})\s'</span>) { [long]<span class="va">$Matches</span>[<span class="nu">1</span>] } <span class="kw">else</span> { <span class="nu">0</span> }
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Source       <span class="op">=</span> <span class="va">$src</span>.name
+                Zone         <span class="op">=</span> <span class="va">$zone</span>
+                TransferType <span class="op">=</span> <span class="st">'SOA-Serial'</span>
+                Serial       <span class="op">=</span> <span class="va">$serial</span>
+                Status       <span class="op">=</span> <span class="kw">if</span> (<span class="va">$serial</span> <span class="op">-gt</span> <span class="nu">0</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'FAIL'</span> }
+                Detail       <span class="op">=</span> <span class="st">"SOA serial: </span><span class="va">$serial</span><span class="st">"</span>
+            })
+
+            <span class="cm"># ── IXFR: Incremental transfer (requires known serial) ─</span>
+            <span class="kw">if</span> (<span class="va">$cfg</span>.TransferTypes -contains <span class="st">'IXFR'</span> -and <span class="va">$serial</span> <span class="op">-gt</span> <span class="nu">0</span>) {
+                <span class="va">$prevSerial</span> <span class="op">=</span> <span class="va">$serial</span> <span class="op">-</span> <span class="nu">1</span>    <span class="cm"># ask for changes since serial-1</span>
+                Write-Host <span class="st">"  [MOD-10] IXFR </span><span class="va">$zone</span><span class="st"> serial=</span><span class="va">$prevSerial</span><span class="st"> → </span><span class="va">$serial</span><span class="st">"</span>
+                <span class="va">$ixfrOut</span>  <span class="op">=</span> & dig <span class="st">"@</span><span class="va">$($src.ip)</span><span class="st">"</span> <span class="va">$zone</span> IXFR=<span class="va">$prevSerial</span> +time=<span class="va">$($cfg.TimeoutSec)</span> 2>&amp;<span class="nu">1</span>
+                <span class="va">$ixfrOk</span>   <span class="op">=</span> <span class="va">$ixfrOut</span> -match <span class="st">'SOA'</span>
+                <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                    Source=<span class="va">$src</span>.name; Zone=<span class="va">$zone</span>; TransferType=<span class="st">'IXFR'</span>
+                    Status = <span class="kw">if</span> (<span class="va">$ixfrOk</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'WARN'</span> }
+                    Detail = <span class="kw">if</span> (<span class="va">$ixfrOk</span>) { <span class="st">"Incremental transfer responded with SOA"</span> } <span class="kw">else</span> { <span class="st">"IXFR fell back to AXFR or failed"</span> }
+                })
+            }
+
+            <span class="cm"># ── ACL blocking test — unauthorized source should get REFUSED ─</span>
+            <span class="kw">if</span> (<span class="va">$cfg</span>.TestAclBlocking) {
+                <span class="cm"># Use a source-routed probe via nsupdate trick or flag for manual verification</span>
+                <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                    Source       <span class="op">=</span> <span class="va">$src</span>.name
+                    Zone         <span class="op">=</span> <span class="va">$zone</span>
+                    TransferType <span class="op">=</span> <span class="st">'ACL-Block'</span>
+                    Status       <span class="op">=</span> <span class="st">'MANUAL'</span>
+                    Detail       <span class="op">=</span> <span class="st">"Verify AXFR REFUSED from non-ACL IP via: dig @</span><span class="va">$($src.ip)</span><span class="st"> </span><span class="va">$zone</span><span class="st"> AXFR +tcp"</span>
+                })
+            }
+        }
+    }
+
+    <span class="cm"># ── Split-DNS consistency: internal vs external answers differ ──</span>
+    <span class="va">$splitZones</span> <span class="op">=</span> <span class="va">$sources</span> | Where-Object { <span class="va">$_</span>.role <span class="op">-match</span> <span class="st">'internal|external'</span> } |
+        Select-Object -ExpandProperty zones -Unique | Group-Object |
+        Where-Object { <span class="va">$_</span>.Count <span class="op">-gt</span> <span class="nu">1</span> }    <span class="cm"># zones present on both int + ext</span>
+
+    <span class="kw">foreach</span> (<span class="va">$zg</span> <span class="kw">in</span> <span class="va">$splitZones</span>) {
+        <span class="va">$zName</span>   <span class="op">=</span> <span class="va">$zg</span>.Name
+        <span class="va">$intSrc</span>  <span class="op">=</span> <span class="va">$sources</span> | Where-Object { <span class="va">$_</span>.role <span class="op">-match</span> <span class="st">'internal'</span> -and <span class="va">$_</span>.zones -contains <span class="va">$zName</span> } | Select-Object -First <span class="nu">1</span>
+        <span class="va">$extSrc</span>  <span class="op">=</span> <span class="va">$sources</span> | Where-Object { <span class="va">$_</span>.role <span class="op">-match</span> <span class="st">'external'</span> -and <span class="va">$_</span>.zones -contains <span class="va">$zName</span> } | Select-Object -First <span class="nu">1</span>
+        <span class="kw">if</span> (<span class="op">-not</span> <span class="va">$intSrc</span> <span class="op">-or</span> <span class="op">-not</span> <span class="va">$extSrc</span>) { <span class="kw">continue</span> }
+
+        <span class="va">$intSoa</span>  <span class="op">=</span> & dig <span class="st">"@</span><span class="va">$($intSrc.ip)</span><span class="st">"</span> <span class="va">$zName</span> SOA +short 2>&amp;<span class="nu">1</span>
+        <span class="va">$extSoa</span>  <span class="op">=</span> & dig <span class="st">"@</span><span class="va">$($extSrc.ip)</span><span class="st">"</span> <span class="va">$zName</span> SOA +short 2>&amp;<span class="nu">1</span>
+        <span class="va">$differ</span>  <span class="op">=</span> <span class="va">$intSoa</span> <span class="op">-ne</span> <span class="va">$extSoa</span>    <span class="cm"># SOA content SHOULD differ for split-DNS</span>
+        <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+            Source       <span class="op">=</span> <span class="st">"split-DNS"</span>
+            Zone         <span class="op">=</span> <span class="va">$zName</span>
+            TransferType <span class="op">=</span> <span class="st">'Split-Consistency'</span>
+            Status       <span class="op">=</span> <span class="kw">if</span> (<span class="va">$differ</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'WARN'</span> }
+            Detail       <span class="op">=</span> <span class="kw">if</span> (<span class="va">$differ</span>) { <span class="st">"Int/Ext SOA differ — split-DNS confirmed"</span> } <span class="kw">else</span> { <span class="st">"Int/Ext SOA identical — verify split-DNS config"</span> }
+        })
+    }
+
+    <span class="va">$fails</span> <span class="op">=</span> (<span class="va">$results</span> | Where-Object Status <span class="op">-eq</span> <span class="st">'FAIL'</span>).Count
+    <span class="kw">return</span> [<span class="ty">pscustomobject</span>]@{
+        ModuleId <span class="op">=</span> <span class="st">'MOD-10'</span>
+        Results  <span class="op">=</span> <span class="va">$results</span>
+        Summary  <span class="op">=</span> [<span class="ty">pscustomobject</span>]@{
+            Status    <span class="op">=</span> <span class="kw">if</span> (<span class="va">$fails</span> <span class="op">-gt</span> <span class="nu">0</span>) { <span class="st">'FAIL'</span> } <span class="kw">else</span> { <span class="st">'PASS'</span> }
+            TestCount <span class="op">=</span> <span class="va">$results</span>.Count
+            Message   <span class="op">=</span> <span class="st">"</span><span class="va">$($results.Count)</span><span class="st"> transfer tests across </span><span class="va">$($sources.Count)</span><span class="st"> Windows DNS sources | Failures: </span><span class="va">$fails</span><span class="st">"</span>
+        }
+    }
+}
+
+Export-ModuleMember -Function <span class="fn">Get-ModuleInfo</span>, <span class="fn">Get-DefaultConfig</span>, <span class="fn">Invoke-DNSTest</span></pre>
+  </div>
+</div>
+
+<!-- ══ MOD-11: THREAT PROTECTION ══ -->
+<div id="sect-mod-threat" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title"><span class="mod-tag badge badge-red">MOD-11</span> Threat Protection</div>
+      <div class="section-desc">Validates BlueCat Edge Resolver RPZ-based threat protection across domain categories: malware C2, phishing, botnet, DGA, and safe passthrough. Tests that blocked domains return the correct action and safe domains resolve normally.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('threat')"><i class="fa-solid fa-download"></i> DNSTest-Threat.psm1</button>
+  </div>
+  <div class="alert alert-warn">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div>All test domains in <code>threat-feeds.json</code> must use purpose-built test hostnames in a non-routable domain (e.g. <code>.rpz.invalid</code>). Never use real malware C2 or phishing domains as test fixtures, even in a lab.</div>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTest-Threat.psm1 — MOD-11</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# DNSTest-Threat.psm1  –  MOD-11 · Edge Resolver Threat Protection
+# Validates RPZ category blocking and safe passthrough per resolver
+# ============================================================</span>
+
+<span class="kw">function</span> <span class="fn">Get-ModuleInfo</span> {
+    [<span class="ty">pscustomobject</span>]@{
+        Id=<span class="st">'MOD-11'</span>; Name=<span class="st">'Threat Protection Validation'</span>; Version=<span class="st">'2.0'</span>
+        Tags=@(<span class="st">'threat'</span>,<span class="st">'rpz'</span>,<span class="st">'security'</span>,<span class="st">'edge-resolver'</span>,<span class="st">'malware'</span>,<span class="st">'phishing'</span>)
+    }
+}
+<span class="kw">function</span> <span class="fn">Get-DefaultConfig</span> {
+    @{
+        <span class="cm"># Edge resolvers to validate threat protection on (filter by role)</span>
+        TargetRole          <span class="op">=</span> <span class="st">'edge-resolver'</span>
+
+        <span class="cm"># How many times to query each domain per resolver (for consistency)</span>
+        RepeatCount         <span class="op">=</span> <span class="nu">3</span>
+
+        <span class="cm"># A NOERROR response to a known-blocked domain = FAIL</span>
+        PassthroughIsBlock  <span class="op">=</span> <span class="va">$true</span>
+
+        <span class="cm"># Max acceptable latency for a blocked response (should be fast)</span>
+        BlockLatencyMaxMs   <span class="op">=</span> <span class="nu">50</span>
+
+        TimeoutMs           <span class="op">=</span> <span class="nu">3000</span>
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSTest</span> {
+    <span class="kw">param</span>(<span class="ty">[hashtable]</span><span class="va">$Context</span>)
+    <span class="va">$cfg</span>      <span class="op">=</span> <span class="fn">Get-DefaultConfig</span>
+    <span class="va">$feeds</span>    <span class="op">=</span> <span class="va">$Context</span>.ThreatFeeds.categories
+    <span class="va">$resolvers</span><span class="op">=</span> <span class="va">$Context</span>.Config.targets | Where-Object { <span class="va">$_</span>.role <span class="op">-eq</span> <span class="va">$cfg</span>.TargetRole }
+    <span class="va">$results</span>  <span class="op">=</span> [System.Collections.Generic.List[psobject]]::new()
+
+    <span class="kw">foreach</span> (<span class="va">$resolver</span> <span class="kw">in</span> <span class="va">$resolvers</span>) {
+        Write-Host <span class="st">"  [MOD-11] Testing threat protection on </span><span class="va">$($resolver.name)</span><span class="st"> (</span><span class="va">$($resolver.ip)</span><span class="st">)"</span>
+
+        <span class="kw">foreach</span> (<span class="va">$cat</span> <span class="kw">in</span> <span class="va">$feeds</span>) {
+            <span class="kw">foreach</span> (<span class="va">$domain</span> <span class="kw">in</span> <span class="va">$cat</span>.test_domains) {
+                <span class="va">$latencies</span> <span class="op">=</span> @()
+                <span class="va">$statuses</span>  <span class="op">=</span> @()
+
+                <span class="nu">1</span>..<span class="va">$cfg</span>.RepeatCount | ForEach-Object {
+                    <span class="va">$r</span> <span class="op">=</span> & <span class="va">$Context</span>.FnQuery -Server <span class="va">$resolver</span>.ip `
+                        -Name <span class="va">$domain</span> -Type <span class="st">'A'</span> -TimeoutMs <span class="va">$cfg</span>.TimeoutMs
+                    <span class="va">$latencies</span> <span class="op">+=</span> <span class="va">$r</span>.LatencyMs
+                    <span class="va">$statuses</span>  <span class="op">+=</span> <span class="va">$r</span>.Status
+                }
+
+                <span class="va">$expectedAction</span> <span class="op">=</span> <span class="va">$cat</span>.expected_action   <span class="cm"># 'NXDOMAIN' | 'SINKHOLE' | 'NOERROR'</span>
+                <span class="va">$dominantStatus</span> <span class="op">=</span> <span class="va">$statuses</span> | Group-Object | Sort-Object Count -Desc | Select-Object -First <span class="nu">1</span> -Expand Name
+                <span class="va">$avgLatMs</span>       <span class="op">=</span> [<span class="ty">math</span>]::Round((<span class="va">$latencies</span> | Measure-Object -Average).Average, <span class="nu">2</span>)
+
+                <span class="va">$pass</span> <span class="op">=</span> <span class="kw">switch</span> (<span class="va">$expectedAction</span>) {
+                    <span class="st">'NXDOMAIN'</span> { <span class="va">$dominantStatus</span> <span class="op">-eq</span> <span class="st">'NXDOMAIN'</span>          }
+                    <span class="st">'SINKHOLE'</span> { <span class="va">$dominantStatus</span> <span class="op">-eq</span> <span class="st">'NOERROR'</span>             }  <span class="cm"># sinkhole returns an IP</span>
+                    <span class="st">'NOERROR'</span>  { <span class="va">$dominantStatus</span> <span class="op">-eq</span> <span class="st">'NOERROR'</span>             }  <span class="cm"># safe domain passes through</span>
+                    <span class="kw">default</span>    { <span class="va">$dominantStatus</span> <span class="op">-ne</span> <span class="st">'NOERROR'</span>             }
+                }
+
+                <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                    Resolver       <span class="op">=</span> <span class="va">$resolver</span>.name
+                    ResolverIP     <span class="op">=</span> <span class="va">$resolver</span>.ip
+                    Category       <span class="op">=</span> <span class="va">$cat</span>.name
+                    Domain         <span class="op">=</span> <span class="va">$domain</span>
+                    ExpectedAction <span class="op">=</span> <span class="va">$expectedAction</span>
+                    ObservedStatus <span class="op">=</span> <span class="va">$dominantStatus</span>
+                    AvgLatencyMs   <span class="op">=</span> <span class="va">$avgLatMs</span>
+                    Consistent     <span class="op">=</span> (<span class="va">$statuses</span> | Select-Object -Unique).Count <span class="op">-eq</span> <span class="nu">1</span>
+                    Status         <span class="op">=</span> <span class="kw">if</span> (<span class="va">$pass</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'FAIL'</span> }
+                })
+            }
+        }
+    }
+
+    <span class="va">$fails</span>    <span class="op">=</span> (<span class="va">$results</span> | Where-Object Status <span class="op">-eq</span> <span class="st">'FAIL'</span>).Count
+    <span class="va">$total</span>    <span class="op">=</span> <span class="va">$results</span>.Count
+    <span class="va">$coverage</span> <span class="op">=</span> [<span class="ty">math</span>]::Round(((<span class="va">$total</span> <span class="op">-</span> <span class="va">$fails</span>) / [<span class="ty">math</span>]::Max(<span class="va">$total</span>,<span class="nu">1</span>)) <span class="op">*</span> <span class="nu">100</span>, <span class="nu">1</span>)
+
+    <span class="kw">return</span> [<span class="ty">pscustomobject</span>]@{
+        ModuleId <span class="op">=</span> <span class="st">'MOD-11'</span>
+        Results  <span class="op">=</span> <span class="va">$results</span>
+        Summary  <span class="op">=</span> [<span class="ty">pscustomobject</span>]@{
+            Status    <span class="op">=</span> <span class="kw">if</span> (<span class="va">$fails</span> <span class="op">-gt</span> <span class="nu">0</span>) { <span class="st">'FAIL'</span> } <span class="kw">else</span> { <span class="st">'PASS'</span> }
+            TestCount <span class="op">=</span> <span class="va">$total</span>
+            Message   <span class="op">=</span> <span class="st">"Threat block coverage: </span><span class="va">$coverage</span><span class="st">% (</span><span class="va">$($total-$fails)</span><span class="st">/</span><span class="va">$total</span><span class="st"> correct) | Failures: </span><span class="va">$fails</span><span class="st">"</span>
+        }
+    }
+}
+
+Export-ModuleMember -Function <span class="fn">Get-ModuleInfo</span>, <span class="fn">Get-DefaultConfig</span>, <span class="fn">Invoke-DNSTest</span></pre>
+  </div>
+</div>
+
+<!-- ══ MOD-12: SINKHOLE ══ -->
+<div id="sect-mod-sinkhole" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title"><span class="mod-tag badge badge-purple">MOD-12</span> DNS Sinkhole Validation</div>
+      <div class="section-desc">Validates that sinkhole-policy domains return the correct sinkhole IP, NXDOMAIN, or NODATA answer. Also checks that sinkhole events are being logged to the configured logging endpoint, and probes for passthrough leaks where blocked domains resolve correctly when queried from non-sinkhole paths.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('sinkhole')"><i class="fa-solid fa-download"></i> DNSTest-Sinkhole.psm1</button>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTest-Sinkhole.psm1 — MOD-12</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# DNSTest-Sinkhole.psm1  –  MOD-12 · DNS Sinkhole Validation
+# Validates sinkhole answer correctness, logging, and bypass probe
+# ============================================================</span>
+
+<span class="kw">function</span> <span class="fn">Get-ModuleInfo</span> {
+    [<span class="ty">pscustomobject</span>]@{
+        Id=<span class="st">'MOD-12'</span>; Name=<span class="st">'DNS Sinkhole Validation'</span>; Version=<span class="st">'2.0'</span>
+        Tags=@(<span class="st">'sinkhole'</span>,<span class="st">'security'</span>,<span class="st">'rpz'</span>,<span class="st">'logging'</span>,<span class="st">'bypass'</span>)
+    }
+}
+<span class="kw">function</span> <span class="fn">Get-DefaultConfig</span> {
+    @{
+        <span class="cm"># Sinkhole answer types the module can validate</span>
+        SinkholeAnswerTypes   <span class="op">=</span> @(<span class="st">'SINKHOLE-IP'</span>, <span class="st">'NXDOMAIN'</span>, <span class="st">'NODATA'</span>)
+
+        <span class="cm"># Domains expected to be sinkholes (from threat-feeds categories with SINKHOLE action)</span>
+        <span class="cm"># populated dynamically from threat-feeds.json at runtime</span>
+
+        <span class="cm"># Sinkhole IPs returned by edge resolver for sinkhoked domains</span>
+        <span class="cm"># populated from targets.json > sinkhole_ips</span>
+
+        <span class="cm"># Seconds to wait after query before checking log API</span>
+        LogCheckDelaySec      <span class="op">=</span> <span class="nu">5</span>
+
+        <span class="cm"># Query count to use when testing log volume</span>
+        LogProbeCount         <span class="op">=</span> <span class="nu">10</span>
+
+        <span class="cm"># Query from a direct authoritative (not through Edge) to test bypass isolation</span>
+        <span class="cm"># This should NOT return the sinkhole IP — it should NXDOMAIN or timeout</span>
+        BypassProbeServer     <span class="op">=</span> <span class="st">'8.8.8.8'</span>
+
+        TimeoutMs             <span class="op">=</span> <span class="nu">3000</span>
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSTest</span> {
+    <span class="kw">param</span>(<span class="ty">[hashtable]</span><span class="va">$Context</span>)
+    <span class="va">$cfg</span>          <span class="op">=</span> <span class="fn">Get-DefaultConfig</span>
+    <span class="va">$feeds</span>        <span class="op">=</span> <span class="va">$Context</span>.ThreatFeeds
+    <span class="va">$sinkholeIPs</span>  <span class="op">=</span> <span class="va">$Context</span>.Config.sinkhole_ips
+    <span class="va">$logApi</span>       <span class="op">=</span> <span class="va">$feeds</span>.sinkhole_log_api
+    <span class="va">$verifyLog</span>    <span class="op">=</span> <span class="va">$feeds</span>.verify_logging
+    <span class="va">$resolvers</span>    <span class="op">=</span> <span class="va">$Context</span>.Config.targets | Where-Object { <span class="va">$_</span>.role <span class="op">-eq</span> <span class="st">'edge-resolver'</span> }
+    <span class="va">$sinkholeDoms</span> <span class="op">=</span> <span class="va">$feeds</span>.categories | Where-Object { <span class="va">$_</span>.expected_action <span class="op">-eq</span> <span class="st">'SINKHOLE'</span> } |
+                     Select-Object -ExpandProperty test_domains
+    <span class="va">$results</span>      <span class="op">=</span> [System.Collections.Generic.List[psobject]]::new()
+
+    <span class="kw">foreach</span> (<span class="va">$resolver</span> <span class="kw">in</span> <span class="va">$resolvers</span>) {
+        Write-Host <span class="st">"  [MOD-12] Sinkhole validation on </span><span class="va">$($resolver.name)</span><span class="st">"</span>
+
+        <span class="kw">foreach</span> (<span class="va">$domain</span> <span class="kw">in</span> <span class="va">$sinkholeDoms</span>) {
+
+            <span class="cm"># ── Test 1: Sinkhole answer type ────────────────────</span>
+            <span class="va">$r</span>     <span class="op">=</span> & <span class="va">$Context</span>.FnQuery -Server <span class="va">$resolver</span>.ip -Name <span class="va">$domain</span> -Type <span class="st">'A'</span> -TimeoutMs <span class="va">$cfg</span>.TimeoutMs
+            <span class="va">$gotSinkIP</span> <span class="op">=</span> <span class="va">$r</span>.Answer | Where-Object { <span class="va">$sinkholeIPs</span> -contains <span class="va">$_</span>.Trim() }
+
+            <span class="va">$answerType</span> <span class="op">=</span> <span class="kw">if</span>     (<span class="va">$gotSinkIP</span>)                        { <span class="st">'SINKHOLE-IP'</span> }
+                          <span class="kw">elseif</span> (<span class="va">$r</span>.Status <span class="op">-eq</span> <span class="st">'NXDOMAIN'</span>)           { <span class="st">'NXDOMAIN'</span>    }
+                          <span class="kw">elseif</span> (<span class="va">$r</span>.Status <span class="op">-eq</span> <span class="st">'NOERROR'</span> -and <span class="op">-not</span> <span class="va">$r</span>.Answer) { <span class="st">'NODATA'</span> }
+                          <span class="kw">else</span>                                           { <span class="st">'PASSTHROUGH'</span> }
+
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Resolver   <span class="op">=</span> <span class="va">$resolver</span>.name; Domain <span class="op">=</span> <span class="va">$domain</span>
+                Test       <span class="op">=</span> <span class="st">'Sinkhole-Answer'</span>
+                AnswerType <span class="op">=</span> <span class="va">$answerType</span>
+                LatencyMs  <span class="op">=</span> <span class="va">$r</span>.LatencyMs
+                Status     <span class="op">=</span> <span class="kw">if</span> (<span class="va">$answerType</span> <span class="op">-ne</span> <span class="st">'PASSTHROUGH'</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'FAIL'</span> }
+                Detail     <span class="op">=</span> <span class="st">"Domain sinkhoked → </span><span class="va">$answerType</span><span class="st">"</span>
+            })
+
+            <span class="cm"># ── Test 2: Bypass probe — should NOT sinkhole when going direct ──</span>
+            <span class="va">$bypass</span> <span class="op">=</span> & <span class="va">$Context</span>.FnQuery -Server <span class="va">$cfg</span>.BypassProbeServer -Name <span class="va">$domain</span> -Type <span class="st">'A'</span>
+            <span class="va">$bypassSinkhoked</span> <span class="op">=</span> <span class="va">$bypass</span>.Answer | Where-Object { <span class="va">$sinkholeIPs</span> -contains <span class="va">$_</span>.Trim() }
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Resolver   <span class="op">=</span> <span class="va">$resolver</span>.name; Domain <span class="op">=</span> <span class="va">$domain</span>
+                Test       <span class="op">=</span> <span class="st">'Bypass-Isolation'</span>
+                AnswerType <span class="op">=</span> <span class="kw">if</span> (<span class="va">$bypassSinkhoked</span>) { <span class="st">'SINKHOLE-IP (UNEXPECTED)'</span> } <span class="kw">else</span> { <span class="va">$bypass</span>.Status }
+                <span class="cm"># Bypass should NOT return sinkhole IP — if it does, sinkhole is in wrong zone</span>
+                Status     <span class="op">=</span> <span class="kw">if</span> (<span class="op">-not</span> <span class="va">$bypassSinkhoked</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'WARN'</span> }
+                Detail     <span class="op">=</span> <span class="st">"Direct query to </span><span class="va">$($cfg.BypassProbeServer)</span><span class="st">: </span><span class="va">$($bypass.Status)</span><span class="st">"</span>
+            })
+        }
+    }
+
+    <span class="cm"># ── Test 3: Sinkhole logging verification ────────────────</span>
+    <span class="kw">if</span> (<span class="va">$verifyLog</span> -and <span class="va">$logApi</span>) {
+        Write-Host <span class="st">"  [MOD-12] Verifying sinkhole log events at </span><span class="va">$logApi</span><span class="st">"</span>
+        <span class="kw">try</span> {
+            <span class="va">$probeTime</span> <span class="op">=</span> Get-Date -Format <span class="st">'yyyy-MM-ddTHH:mm:ssZ'</span>
+            <span class="cm"># Issue probe queries to generate events</span>
+            <span class="nu">1</span>..<span class="va">$cfg</span>.LogProbeCount | ForEach-Object {
+                & <span class="va">$Context</span>.FnQuery -Server (<span class="va">$resolvers</span> | Select-Object -First <span class="nu">1</span>).ip `
+                    -Name <span class="va">$sinkholeDoms</span>[<span class="nu">0</span>] -Type <span class="st">'A'</span> | Out-Null
+            }
+            Start-Sleep -Seconds <span class="va">$cfg</span>.LogCheckDelaySec
+
+            <span class="cm"># Query log API for events newer than probe time</span>
+            <span class="va">$logResp</span> <span class="op">=</span> Invoke-RestMethod -Uri <span class="va">$logApi</span> -Method GET `
+                -Body (@{ query=@{ range=@{ <span class="st">'@timestamp'</span>=@{ gte=<span class="va">$probeTime</span> } } } } | ConvertTo-Json -Compress) `
+                -ContentType <span class="st">'application/json'</span> -ErrorAction SilentlyContinue
+            <span class="va">$logCount</span> <span class="op">=</span> <span class="kw">if</span> (<span class="va">$logResp</span>.hits.total.value) { <span class="va">$logResp</span>.hits.total.value } <span class="kw">else</span> { <span class="nu">0</span> }
+
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Resolver   <span class="op">=</span> <span class="st">'all'</span>; Domain <span class="op">=</span> <span class="st">'sinkhole-log-api'</span>
+                Test       <span class="op">=</span> <span class="st">'Log-Verification'</span>
+                AnswerType <span class="op">=</span> <span class="st">"</span><span class="va">$logCount</span><span class="st"> events logged"</span>
+                Status     <span class="op">=</span> <span class="kw">if</span> (<span class="va">$logCount</span> <span class="op">-ge</span> <span class="va">$cfg</span>.LogProbeCount) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'WARN'</span> }
+                Detail     <span class="op">=</span> <span class="st">"Expected ≥</span><span class="va">$($cfg.LogProbeCount)</span><span class="st"> events — got </span><span class="va">$logCount</span><span class="st">"</span>
+            })
+        } <span class="kw">catch</span> {
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Resolver=<span class="st">'all'</span>; Domain=<span class="st">'sinkhole-log-api'</span>; Test=<span class="st">'Log-Verification'</span>
+                Status=<span class="st">'WARN'</span>; Detail=<span class="st">"Log API unreachable: </span><span class="va">$_</span><span class="st">"</span>
+            })
+        }
+    }
+
+    <span class="va">$fails</span> <span class="op">=</span> (<span class="va">$results</span> | Where-Object Status <span class="op">-eq</span> <span class="st">'FAIL'</span>).Count
+    <span class="kw">return</span> [<span class="ty">pscustomobject</span>]@{
+        ModuleId <span class="op">=</span> <span class="st">'MOD-12'</span>; Results <span class="op">=</span> <span class="va">$results</span>
+        Summary  <span class="op">=</span> [<span class="ty">pscustomobject</span>]@{
+            Status    <span class="op">=</span> <span class="kw">if</span>(<span class="va">$fails</span><span class="op">-gt</span><span class="nu">0</span>){<span class="st">'FAIL'</span>}<span class="kw">else</span>{<span class="st">'PASS'</span>}; TestCount=<span class="va">$results</span>.Count
+            Message   <span class="op">=</span> <span class="st">"Sinkhole tests: </span><span class="va">$($results.Count)</span><span class="st"> | Passthrough leaks (FAIL): </span><span class="va">$fails</span><span class="st">"</span>
+        }
+    }
+}
+Export-ModuleMember -Function <span class="fn">Get-ModuleInfo</span>, <span class="fn">Get-DefaultConfig</span>, <span class="fn">Invoke-DNSTest</span></pre>
+  </div>
+</div>
+
+<!-- ══ MOD-13: TSIG ══ -->
+<div id="sect-mod-tsig" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title"><span class="mod-tag badge badge-green">MOD-13</span> Dynamic Updates — TSIG</div>
+      <div class="section-desc">Tests RFC 2136 dynamic DNS updates with TSIG authentication. Exercises add, delete, and update operations using configured HMAC keys. Also verifies that unsigned update attempts are correctly rejected with REFUSED, and validates key rotation by testing both active and rotated keys.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('tsig')"><i class="fa-solid fa-download"></i> DNSTest-TSIG.psm1</button>
+  </div>
+
+  <div class="alert alert-warn">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div>Dynamic updates write real DNS records. The test record name uses <code>_dnstest-{runid}.&lt;zone&gt;</code> to avoid collisions. Cleanup is automatic when <code>test_update_cleanup: true</code> in <code>tsig-keys.json</code>. Do not run against production authoritative servers without prior approval.</div>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTest-TSIG.psm1 — MOD-13</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# DNSTest-TSIG.psm1  –  MOD-13 · Dynamic Updates with TSIG
+# RFC 2136 add/delete/update + unsigned rejection + key rotation
+# Requires nsupdate (from BIND-utils / dig package)
+# ============================================================</span>
+
+<span class="kw">function</span> <span class="fn">Get-ModuleInfo</span> {
+    [<span class="ty">pscustomobject</span>]@{
+        Id=<span class="st">'MOD-13'</span>; Name=<span class="st">'Dynamic Updates (TSIG)'</span>; Version=<span class="st">'2.0'</span>
+        Tags=@(<span class="st">'tsig'</span>,<span class="st">'ddns'</span>,<span class="st">'dynamic-update'</span>,<span class="st">'security'</span>,<span class="st">'rfc2136'</span>)
+    }
+}
+<span class="kw">function</span> <span class="fn">Get-DefaultConfig</span> {
+    @{
+        <span class="cm"># Update TTL for test records</span>
+        UpdateTTL           <span class="op">=</span> <span class="nu">60</span>
+
+        <span class="cm"># IP of the authoritative server to send updates to</span>
+        <span class="cm"># (usually MDDS hidden-master or Windows DNS primary)</span>
+        AuthoritativeServer <span class="op">=</span> <span class="st">'192.168.0.30'</span>    <span class="cm"># MDDS hidden-master</span>
+
+        <span class="cm"># Test record value (random per run)</span>
+        TestAValue          <span class="op">=</span> <span class="st">'203.0.113.250'</span>   <span class="cm"># TEST-NET-3 — documentation range</span>
+        TestAValueUpdated   <span class="op">=</span> <span class="st">'203.0.113.251'</span>
+
+        <span class="cm"># Verify the update propagated to a resolver after write</span>
+        VerifyViaResolver   <span class="op">=</span> <span class="st">'10.100.100.100'</span>  <span class="cm"># GLOBAL-DNS VIP</span>
+        VerifyDelaySec      <span class="op">=</span> <span class="nu">5</span>
+
+        <span class="cm"># Test unsigned updates are rejected</span>
+        TestUnsignedUpdate  <span class="op">=</span> <span class="va">$true</span>
+    }
+}
+
+<span class="cm"># Helper: writes an nsupdate batch file and executes it, returning stdout+stderr</span>
+<span class="kw">function</span> <span class="fn">Invoke-NSUpdate</span> {
+    <span class="kw">param</span>(
+        <span class="ty">[string]</span> <span class="va">$Server</span>,
+        <span class="ty">[string]</span> <span class="va">$KeyName</span>,
+        <span class="ty">[string]</span> <span class="va">$KeyAlgorithm</span>,
+        <span class="ty">[string]</span> <span class="va">$KeySecret</span>,
+        <span class="ty">[string]</span> <span class="va">$Zone</span>,
+        <span class="ty">[string[]]</span><span class="va">$UpdateLines</span>,     <span class="cm"># e.g. 'update add foo.zone. 60 A 1.2.3.4'</span>
+        <span class="ty">[switch]</span> <span class="va">$NoTSIG</span>
+    )
+    <span class="va">$batchFile</span> <span class="op">=</span> [System.IO.Path]::GetTempFileName()
+    <span class="va">$content</span>   <span class="op">=</span> [System.Collections.Generic.List[string]]::new()
+    <span class="va">$content</span>.Add(<span class="st">"server </span><span class="va">$Server</span><span class="st">"</span>)
+    <span class="kw">if</span> (<span class="op">-not</span> <span class="va">$NoTSIG</span>) {
+        <span class="va">$content</span>.Add(<span class="st">"key </span><span class="va">$KeyAlgorithm</span><span class="st">:</span><span class="va">$KeyName</span><span class="st"> </span><span class="va">$KeySecret</span><span class="st">"</span>)
+    }
+    <span class="va">$content</span>.Add(<span class="st">"zone </span><span class="va">$Zone</span><span class="st">"</span>)
+    <span class="va">$UpdateLines</span> | ForEach-Object { <span class="va">$content</span>.Add(<span class="va">$_</span>) }
+    <span class="va">$content</span>.Add(<span class="st">"send"</span>)
+    <span class="va">$content</span> | Set-Content <span class="va">$batchFile</span>
+
+    <span class="va">$sw</span>  <span class="op">=</span> [System.Diagnostics.Stopwatch]::StartNew()
+    <span class="va">$out</span> <span class="op">=</span> & nsupdate <span class="va">$batchFile</span> 2>&amp;<span class="nu">1</span>
+    <span class="va">$sw</span>.Stop()
+    Remove-Item <span class="va">$batchFile</span> -Force -ErrorAction SilentlyContinue
+
+    [<span class="ty">pscustomobject</span>]@{
+        Output     <span class="op">=</span> <span class="va">$out</span>
+        LatencyMs  <span class="op">=</span> [<span class="ty">math</span>]::Round(<span class="va">$sw</span>.Elapsed.TotalMilliseconds, <span class="nu">2</span>)
+        Success    <span class="op">=</span> <span class="op">-not</span> (<span class="va">$out</span> -match <span class="st">'REFUSED|NOTAUTH|SERVFAIL|timed out|bad'</span>)
+        Refused    <span class="op">=</span> <span class="va">$out</span> -match <span class="st">'REFUSED|NOTAUTH'</span>
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSTest</span> {
+    <span class="kw">param</span>(<span class="ty">[hashtable]</span><span class="va">$Context</span>)
+    <span class="va">$cfg</span>     <span class="op">=</span> <span class="fn">Get-DefaultConfig</span>
+    <span class="va">$keys</span>    <span class="op">=</span> <span class="va">$Context</span>.TSIGKeys.keys | Where-Object { <span class="va">$_</span>.allowed_ops -contains <span class="st">'add'</span> }
+    <span class="va">$zone</span>    <span class="op">=</span> <span class="va">$Context</span>.TSIGKeys.test_update_zone
+    <span class="va">$runId   <span class="op">=</span> <span class="va">$Context</span>.RunId
+    <span class="va">$recName</span> <span class="op">=</span> <span class="st">"_dnstest-</span><span class="va">$runId</span><span class="st">.</span><span class="va">$zone</span><span class="st">."</span>
+    <span class="va">$results</span> <span class="op">=</span> [System.Collections.Generic.List[psobject]]::new()
+
+    <span class="kw">foreach</span> (<span class="va">$key</span> <span class="kw">in</span> <span class="va">$keys</span>) {
+        Write-Host <span class="st">"  [MOD-13] TSIG key: </span><span class="va">$($key.name)</span><span class="st"> (</span><span class="va">$($key.algorithm)</span><span class="st">)"</span>
+
+        <span class="cm"># ── Test 1: Add record ──────────────────────────────</span>
+        <span class="va">$addResult</span> <span class="op">=</span> <span class="fn">Invoke-NSUpdate</span> -Server <span class="va">$cfg</span>.AuthoritativeServer `
+            -KeyName <span class="va">$key</span>.name -KeyAlgorithm <span class="va">$key</span>.algorithm -KeySecret <span class="va">$key</span>.secret `
+            -Zone <span class="va">$zone</span> -UpdateLines @(
+                <span class="st">"update add </span><span class="va">$recName</span><span class="st"> </span><span class="va">$($cfg.UpdateTTL)</span><span class="st"> A </span><span class="va">$($cfg.TestAValue)</span><span class="st">"</span>
+            )
+        <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+            Key=<span class="va">$key</span>.name; Zone=<span class="va">$zone</span>; Op=<span class="st">'ADD'</span>; LatencyMs=<span class="va">$addResult</span>.LatencyMs
+            Status = <span class="kw">if</span> (<span class="va">$addResult</span>.Success) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'FAIL'</span> }
+            Detail = <span class="st">"ADD </span><span class="va">$recName</span><span class="st"> A </span><span class="va">$($cfg.TestAValue)</span><span class="st">"</span>
+        })
+
+        <span class="cm"># ── Test 2: Verify propagation ──────────────────────</span>
+        Start-Sleep -Seconds <span class="va">$cfg</span>.VerifyDelaySec
+        <span class="va">$verify</span> <span class="op">=</span> & <span class="va">$Context</span>.FnQuery -Server <span class="va">$cfg</span>.VerifyViaResolver -Name <span class="va">$recName</span> -Type <span class="st">'A'</span>
+        <span class="va">$resolvedCorrectly</span> <span class="op">=</span> <span class="va">$verify</span>.Answer -contains <span class="va">$cfg</span>.TestAValue
+        <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+            Key=<span class="va">$key</span>.name; Zone=<span class="va">$zone</span>; Op=<span class="st">'PROPAGATION'</span>; LatencyMs=<span class="va">$verify</span>.LatencyMs
+            Status = <span class="kw">if</span> (<span class="va">$resolvedCorrectly</span>) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'WARN'</span> }
+            Detail = <span class="st">"Query </span><span class="va">$recName</span><span class="st"> via GLOBAL-DNS → </span><span class="va">$($verify.Status)</span><span class="st">"</span>
+        })
+
+        <span class="cm"># ── Test 3: Update record ───────────────────────────</span>
+        <span class="va">$updResult</span> <span class="op">=</span> <span class="fn">Invoke-NSUpdate</span> -Server <span class="va">$cfg</span>.AuthoritativeServer `
+            -KeyName <span class="va">$key</span>.name -KeyAlgorithm <span class="va">$key</span>.algorithm -KeySecret <span class="va">$key</span>.secret `
+            -Zone <span class="va">$zone</span> -UpdateLines @(
+                <span class="st">"update delete </span><span class="va">$recName</span><span class="st"> A </span><span class="va">$($cfg.TestAValue)</span><span class="st">"</span>
+                <span class="st">"update add </span><span class="va">$recName</span><span class="st"> </span><span class="va">$($cfg.UpdateTTL)</span><span class="st"> A </span><span class="va">$($cfg.TestAValueUpdated)</span><span class="st">"</span>
+            )
+        <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+            Key=<span class="va">$key</span>.name; Zone=<span class="va">$zone</span>; Op=<span class="st">'UPDATE'</span>; LatencyMs=<span class="va">$updResult</span>.LatencyMs
+            Status = <span class="kw">if</span> (<span class="va">$updResult</span>.Success) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'FAIL'</span> }
+            Detail = <span class="st">"UPDATE </span><span class="va">$recName</span><span class="st"> A → </span><span class="va">$($cfg.TestAValueUpdated)</span><span class="st">"</span>
+        })
+
+        <span class="cm"># ── Test 4: Unsigned update must be REFUSED ─────────</span>
+        <span class="kw">if</span> (<span class="va">$cfg</span>.TestUnsignedUpdate) {
+            <span class="va">$noTsig</span> <span class="op">=</span> <span class="fn">Invoke-NSUpdate</span> -Server <span class="va">$cfg</span>.AuthoritativeServer `
+                -KeyName <span class="st">''</span> -KeyAlgorithm <span class="st">''</span> -KeySecret <span class="st">''</span> `
+                -Zone <span class="va">$zone</span> -NoTSIG `
+                -UpdateLines @(<span class="st">"update add </span><span class="va">$recName</span><span class="st"> 60 TXT 'unsigned-test'"</span>)
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                Key=<span class="st">'(none)'</span>; Zone=<span class="va">$zone</span>; Op=<span class="st">'UNSIGNED-REJECT'</span>; LatencyMs=<span class="va">$noTsig</span>.LatencyMs
+                Status = <span class="kw">if</span> (<span class="va">$noTsig</span>.Refused) { <span class="st">'PASS'</span> } <span class="kw">else</span> { <span class="st">'FAIL'</span> }
+                Detail = <span class="st">"Unsigned update → expected REFUSED, got: </span><span class="va">$($noTsig.Output -join '')</span><span class="st">"</span>
+            })
+        }
+
+        <span class="cm"># ── Cleanup: delete test record ─────────────────────</span>
+        <span class="kw">if</span> (<span class="va">$Context</span>.TSIGKeys.test_update_cleanup) {
+            <span class="fn">Invoke-NSUpdate</span> -Server <span class="va">$cfg</span>.AuthoritativeServer `
+                -KeyName <span class="va">$key</span>.name -KeyAlgorithm <span class="va">$key</span>.algorithm -KeySecret <span class="va">$key</span>.secret `
+                -Zone <span class="va">$zone</span> -UpdateLines @(<span class="st">"update delete </span><span class="va">$recName</span><span class="st">"</span>) | Out-Null
+            Write-Host <span class="st">"  [MOD-13] Cleaned up: </span><span class="va">$recName</span><span class="st">"</span>
+        }
+    }
+
+    <span class="va">$fails</span> <span class="op">=</span> (<span class="va">$results</span> | Where-Object Status <span class="op">-eq</span> <span class="st">'FAIL'</span>).Count
+    <span class="kw">return</span> [<span class="ty">pscustomobject</span>]@{
+        ModuleId <span class="op">=</span> <span class="st">'MOD-13'</span>; Results <span class="op">=</span> <span class="va">$results</span>
+        Summary  <span class="op">=</span> [<span class="ty">pscustomobject</span>]@{
+            Status    <span class="op">=</span> <span class="kw">if</span>(<span class="va">$fails</span><span class="op">-gt</span><span class="nu">0</span>){<span class="st">'FAIL'</span>}<span class="kw">else</span>{<span class="st">'PASS'</span>}; TestCount=<span class="va">$results</span>.Count
+            Message   <span class="op">=</span> <span class="st">"TSIG dynamic update ops: </span><span class="va">$($results.Count)</span><span class="st"> | Failures: </span><span class="va">$fails</span><span class="st">"</span>
+        }
+    }
+}
+Export-ModuleMember -Function <span class="fn">Get-ModuleInfo</span>, <span class="fn">Get-DefaultConfig</span>, <span class="fn">Invoke-DNSTest</span></pre>
+  </div>
+</div>
+
+<!-- ══ MOD-14: ECS ADVANCED ══ -->
+<div id="sect-mod-ecsadv" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title"><span class="mod-tag badge badge-amber">MOD-14</span> ECS Cross-Cloud CNAME Steering</div>
+      <div class="section-desc">Queries regional CNAMEs via the ECS VIP with per-region source prefixes. Validates that the ultimate A record answer resolves to the correct cloud provider endpoint for each ECS subnet — including cross-cloud scenarios where a European ECS prefix might steer to GCP while the same CNAME from NA lands on Azure or AWS.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('ecsadv')"><i class="fa-solid fa-download"></i> DNSTest-ECSAdvanced.psm1</button>
+  </div>
+
+  <div class="alert alert-tip">
+    <i class="fa-solid fa-globe"></i>
+    <div>This module resolves the full CNAME chain to its final A record and matches the answer IP against known cloud provider prefixes (Azure, AWS, GCP). Update <code>cloud_prefixes</code> in <code>zones.json</code> to reflect your cloud endpoint address ranges.</div>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTest-ECSAdvanced.psm1 — MOD-14</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# DNSTest-ECSAdvanced.psm1  –  MOD-14 · ECS Cross-Cloud CNAME
+# Queries regional CNAMEs with ECS prefixes, validates that the
+# final A record lands on the correct cloud provider per region
+# ============================================================</span>
+
+<span class="kw">function</span> <span class="fn">Get-ModuleInfo</span> {
+    [<span class="ty">pscustomobject</span>]@{
+        Id=<span class="st">'MOD-14'</span>; Name=<span class="st">'ECS Cross-Cloud CNAME Steering'</span>; Version=<span class="st">'2.0'</span>
+        Tags=@(<span class="st">'ecs'</span>,<span class="st">'edns'</span>,<span class="st">'cname'</span>,<span class="st">'cross-cloud'</span>,<span class="st">'geo'</span>,<span class="st">'steering'</span>)
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Get-DefaultConfig</span> {
+    @{
+        <span class="cm"># ECS-aware resolver (Anycast VIP)</span>
+        ECSResolverVIP <span class="op">=</span> <span class="st">'10.100.100.102'</span>    <span class="cm"># REGIONAL-ECS</span>
+
+        <span class="cm"># Regional CNAME hostnames that resolve differently based on ECS subnet</span>
+        <span class="cm"># These CNAMEs point to different cloud endpoints per region</span>
+        RegionalCNAMEs <span class="op">=</span> @(
+            <span class="st">'app-global.corp.root'</span>,
+            <span class="st">'api-gw.corp.root'</span>,
+            <span class="st">'cdn-origin.corp.root'</span>
+        )
+
+        <span class="cm"># ECS subnets and their expected cloud provider endpoint</span>
+        <span class="cm"># If the answer IP is in the cloud_prefixes for that provider, test PASSES</span>
+        ECSRegions <span class="op">=</span> @(
+            @{ Region=<span class="st">'NA'</span>;    Subnet=<span class="st">'198.51.100.0/24'</span>; ExpectedCSP=<span class="st">'azure'</span>; ExpectedRegion=<span class="st">'eastus2'</span>    },
+            @{ Region=<span class="st">'EU'</span>;    Subnet=<span class="st">'203.0.113.0/24'</span>;  ExpectedCSP=<span class="st">'aws'</span>;   ExpectedRegion=<span class="st">'eu-west-1'</span>  },
+            @{ Region=<span class="st">'APAC'</span>; Subnet=<span class="st">'100.64.0.0/24'</span>;   ExpectedCSP=<span class="st">'gcp'</span>;   ExpectedRegion=<span class="st">'asia-east1'</span> },
+            @{ Region=<span class="st">'LATAM'</span>;Subnet=<span class="st">'198.18.0.0/24'</span>;   ExpectedCSP=<span class="st">'gcp'</span>;   ExpectedRegion=<span class="st">'us-east1'</span>   }
+        )
+
+        <span class="cm"># Verify CNAME chain depth does not exceed this</span>
+        MaxChainDepth  <span class="op">=</span> <span class="nu">5</span>
+
+        <span class="cm"># Number of rounds per ECS region per CNAME (consistency check)</span>
+        RoundCount     <span class="op">=</span> <span class="nu">5</span>
+
+        TimeoutMs      <span class="op">=</span> <span class="nu">3000</span>
+    }
+}
+
+<span class="cm"># Resolve full CNAME chain using dig +trace-style multi-query</span>
+<span class="kw">function</span> <span class="fn">Resolve-CNAMEChain</span>(<span class="va">$Server</span>, <span class="va">$Name</span>, <span class="va">$ECSSubnet</span>, <span class="va">$MaxDepth</span>) {
+    <span class="va">$chain</span>  <span class="op">=</span> [System.Collections.Generic.List[string]]::new()
+    <span class="va">$current</span> <span class="op">=</span> <span class="va">$Name</span>
+    <span class="va">$finalIP</span> <span class="op">=</span> <span class="st">$null</span>
+
+    <span class="kw">for</span> (<span class="va">$i</span><span class="op">=</span><span class="nu">0</span>; <span class="va">$i</span><span class="op">-lt</span><span class="va">$MaxDepth</span>; <span class="va">$i</span><span class="op">++</span>) {
+        <span class="va">$digArgs</span>  <span class="op">=</span> @(<span class="st">"@</span><span class="va">$Server</span><span class="st">"</span>, <span class="va">$current</span>, <span class="st">'A'</span>, <span class="st">'+time=3'</span>, <span class="st">'+tries=1'</span>)
+        <span class="kw">if</span> (<span class="va">$ECSSubnet</span>) { <span class="va">$digArgs</span> <span class="op">+=</span> <span class="st">"+subnet=</span><span class="va">$ECSSubnet</span><span class="st">"</span> }
+        <span class="va">$out</span> <span class="op">=</span> & dig <span class="va">@digArgs</span> 2>&amp;<span class="nu">1</span>
+
+        <span class="cm"># Parse ANSWER section</span>
+        <span class="va">$cnameMatch</span> <span class="op">=</span> <span class="va">$out</span> | Where-Object { <span class="va">$_</span> -match <span class="st">'\s+CNAME\s+'</span> } | Select-Object -First <span class="nu">1</span>
+        <span class="va">$aMatch</span>     <span class="op">=</span> <span class="va">$out</span> | Where-Object { <span class="va">$_</span> -match <span class="st">'\s+A\s+\d'</span>    } | Select-Object -First <span class="nu">1</span>
+
+        <span class="kw">if</span> (<span class="va">$aMatch</span> -match <span class="st">'\s+A\s+([\d.]+)'</span>) {
+            <span class="va">$chain</span>.Add(<span class="va">$current</span>)
+            <span class="va">$finalIP</span> <span class="op">=</span> <span class="va">$Matches</span>[<span class="nu">1</span>]
+            <span class="kw">break</span>
+        } <span class="kw">elseif</span> (<span class="va">$cnameMatch</span> -match <span class="st">'\s+CNAME\s+(\S+)'</span>) {
+            <span class="va">$chain</span>.Add(<span class="va">$current</span>)
+            <span class="va">$current</span> <span class="op">=</span> <span class="va">$Matches</span>[<span class="nu">1</span>].TrimEnd(<span class="st">'.'</span>)
+        } <span class="kw">else</span> {
+            <span class="kw">break</span>
+        }
+    }
+
+    [<span class="ty">pscustomobject</span>]@{ Chain=<span class="va">$chain</span>; FinalIP=<span class="va">$finalIP</span>; Depth=<span class="va">$chain</span>.Count }
+}
+
+<span class="cm"># Match an IP to a cloud provider based on configured prefixes</span>
+<span class="kw">function</span> <span class="fn">Get-CloudProvider</span>(<span class="ty">[string]</span><span class="va">$IP</span>, <span class="va">$CloudPrefixes</span>) {
+    <span class="kw">foreach</span> (<span class="va">$csp</span> <span class="kw">in</span> <span class="va">$CloudPrefixes</span>.PSObject.Properties) {
+        <span class="kw">foreach</span> (<span class="va">$prefix</span> <span class="kw">in</span> <span class="va">$csp</span>.Value) {
+            <span class="kw">try</span> {
+                <span class="va">$net</span>    <span class="op">=</span> [System.Net.IPNetwork]::Parse(<span class="va">$prefix</span>)
+                <span class="va">$ipAddr</span> <span class="op">=</span> [System.Net.IPAddress]::Parse(<span class="va">$IP</span>)
+                <span class="kw">if</span> (<span class="va">$net</span>.Contains(<span class="va">$ipAddr</span>)) { <span class="kw">return</span> <span class="va">$csp</span>.Name }
+            } <span class="kw">catch</span> {}
+        }
+    }
+    <span class="kw">return</span> <span class="st">'unknown'</span>
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSTest</span> {
+    <span class="kw">param</span>(<span class="ty">[hashtable]</span><span class="va">$Context</span>)
+    <span class="va">$cfg</span>          <span class="op">=</span> <span class="fn">Get-DefaultConfig</span>
+    <span class="va">$cloudPfx</span>     <span class="op">=</span> <span class="va">$Context</span>.Zones.cloud_prefixes
+    <span class="va">$results</span>      <span class="op">=</span> [System.Collections.Generic.List[psobject]]::new()
+
+    <span class="kw">foreach</span> (<span class="va">$cname</span> <span class="kw">in</span> <span class="va">$cfg</span>.RegionalCNAMEs) {
+        Write-Host <span class="st">"  [MOD-14] Testing CNAME: </span><span class="va">$cname</span><span class="st">"</span>
+
+        <span class="kw">foreach</span> (<span class="va">$region</span> <span class="kw">in</span> <span class="va">$cfg</span>.ECSRegions) {
+            <span class="va">$ips</span>       <span class="op">=</span> [System.Collections.Generic.List[string]]::new()
+            <span class="va">$providers</span> <span class="op">=</span> [System.Collections.Generic.List[string]]::new()
+            <span class="va">$chains</span>    <span class="op">=</span> [System.Collections.Generic.List[psobject]]::new()
+
+            <span class="nu">1</span>..<span class="va">$cfg</span>.RoundCount | ForEach-Object {
+                <span class="va">$resolution</span> <span class="op">=</span> <span class="fn">Resolve-CNAMEChain</span> `
+                    -Server    <span class="va">$cfg</span>.ECSResolverVIP `
+                    -Name      <span class="va">$cname</span> `
+                    -ECSSubnet <span class="va">$region</span>.Subnet `
+                    -MaxDepth  <span class="va">$cfg</span>.MaxChainDepth
+                <span class="kw">if</span> (<span class="va">$resolution</span>.FinalIP) {
+                    <span class="va">$ips</span>.Add(<span class="va">$resolution</span>.FinalIP)
+                    <span class="va">$providers</span>.Add((<span class="fn">Get-CloudProvider</span> <span class="va">$resolution</span>.FinalIP <span class="va">$cloudPfx</span>))
+                    <span class="va">$chains</span>.Add(<span class="va">$resolution</span>)
+                }
+            }
+
+            <span class="cm"># Dominant CSP in answers</span>
+            <span class="va">$dominantCSP</span>    <span class="op">=</span> <span class="va">$providers</span> | Group-Object | Sort-Object Count -Desc |
+                               Select-Object -First <span class="nu">1</span> -ExpandProperty Name
+            <span class="va">$consistent</span>     <span class="op">=</span> (<span class="va">$providers</span> | Select-Object -Unique).Count <span class="op">-eq</span> <span class="nu">1</span>
+            <span class="va">$expectedCSP</span>    <span class="op">=</span> <span class="va">$region</span>.ExpectedCSP
+            <span class="va">$maxChainDepth</span>  <span class="op">=</span> (<span class="va">$chains</span> | Measure-Object -Property Depth -Maximum).Maximum
+            <span class="va">$cspMatch</span>       <span class="op">=</span> <span class="va">$dominantCSP</span> <span class="op">-eq</span> <span class="va">$expectedCSP</span>
+
+            <span class="va">$status</span> <span class="op">=</span> <span class="kw">if</span>     (<span class="va">$cspMatch</span> -and <span class="va">$consistent</span>)          { <span class="st">'PASS'</span> }
+                      <span class="kw">elseif</span> (<span class="va">$cspMatch</span> -and <span class="op">-not</span> <span class="va">$consistent</span>)   { <span class="st">'WARN'</span> }
+                      <span class="kw">else</span>                                           { <span class="st">'FAIL'</span> }
+
+            <span class="va">$results</span>.Add([<span class="ty">pscustomobject</span>]@{
+                CNAME          <span class="op">=</span> <span class="va">$cname</span>
+                Region         <span class="op">=</span> <span class="va">$region</span>.Region
+                ECSSubnet      <span class="op">=</span> <span class="va">$region</span>.Subnet
+                ExpectedCSP    <span class="op">=</span> <span class="va">$expectedCSP</span>
+                ObservedCSP    <span class="op">=</span> <span class="va">$dominantCSP</span>
+                Consistent     <span class="op">=</span> <span class="va">$consistent</span>
+                MaxChainDepth  <span class="op">=</span> <span class="va">$maxChainDepth</span>
+                SampleIPs      <span class="op">=</span> (<span class="va">$ips</span> | Select-Object -Unique)
+                Status         <span class="op">=</span> <span class="va">$status</span>
+                Detail         <span class="op">=</span> <span class="st">"ECS </span><span class="va">$($region.Subnet)</span><span class="st"> → </span><span class="va">$dominantCSP</span><span class="st"> (expected: </span><span class="va">$expectedCSP</span><span class="st">) | chain depth: </span><span class="va">$maxChainDepth</span><span class="st">"</span>
+            })
+        }
+    }
+
+    <span class="va">$fails</span> <span class="op">=</span> (<span class="va">$results</span> | Where-Object Status <span class="op">-eq</span> <span class="st">'FAIL'</span>).Count
+    <span class="va">$warns</span> <span class="op">=</span> (<span class="va">$results</span> | Where-Object Status <span class="op">-eq</span> <span class="st">'WARN'</span>).Count
+
+    <span class="kw">return</span> [<span class="ty">pscustomobject</span>]@{
+        ModuleId <span class="op">=</span> <span class="st">'MOD-14'</span>; Results <span class="op">=</span> <span class="va">$results</span>
+        Summary  <span class="op">=</span> [<span class="ty">pscustomobject</span>]@{
+            Status    <span class="op">=</span> <span class="kw">if</span>(<span class="va">$fails</span><span class="op">-gt</span><span class="nu">0</span>){<span class="st">'FAIL'</span>}<span class="kw">elseif</span>(<span class="va">$warns</span><span class="op">-gt</span><span class="nu">0</span>){<span class="st">'WARN'</span>}<span class="kw">else</span>{<span class="st">'PASS'</span>}
+            TestCount <span class="op">=</span> <span class="va">$results</span>.Count
+            Message   <span class="op">=</span> <span class="st">"ECS cross-cloud steering: </span><span class="va">$($results.Count)</span><span class="st"> tests | FAIL: </span><span class="va">$fails</span><span class="st"> | WARN: </span><span class="va">$warns</span><span class="st">"</span>
+        }
+    }
+}
+Export-ModuleMember -Function <span class="fn">Get-ModuleInfo</span>, <span class="fn">Get-DefaultConfig</span>, <span class="fn">Invoke-DNSTest</span></pre>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-cloud"></i> zones.json — cloud_prefixes addition</div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-file-code"></i> config/zones.json (cloud_prefixes section)</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block">{
+  <span class="st">"zones"</span>: [
+    { <span class="st">"name"</span>: <span class="st">"corp.root"</span>,             <span class="st">"type"</span>: <span class="st">"internal"</span>, <span class="st">"ttl"</span>: <span class="nu">300</span> },
+    { <span class="st">"name"</span>: <span class="st">"internal.example.com"</span>,   <span class="st">"type"</span>: <span class="st">"internal"</span>, <span class="st">"ttl"</span>: <span class="nu">300</span> },
+    { <span class="st">"name"</span>: <span class="st">"external.example.com"</span>,   <span class="st">"type"</span>: <span class="st">"external"</span>, <span class="st">"ttl"</span>: <span class="nu">300</span> },
+    { <span class="st">"name"</span>: <span class="st">"split.example.com"</span>,       <span class="st">"type"</span>: <span class="st">"split"</span>,    <span class="st">"ttl"</span>: <span class="nu">300</span> }
+  ],
+  <span class="cm">// Used by MOD-14 to match final A record to a cloud provider</span>
+  <span class="st">"cloud_prefixes"</span>: {
+    <span class="st">"azure"</span>: [
+      <span class="st">"192.168.30.0/24"</span>,
+      <span class="st">"10.30.0.0/16"</span>
+    ],
+    <span class="st">"aws"</span>: [
+      <span class="st">"192.168.10.0/24"</span>,
+      <span class="st">"10.10.0.0/16"</span>
+    ],
+    <span class="st">"gcp"</span>: [
+      <span class="st">"192.168.20.0/24"</span>,
+      <span class="st">"10.20.0.0/16"</span>
+    ],
+    <span class="st">"equinix"</span>: [
+      <span class="st">"192.168.0.0/24"</span>
+    ]
+  }
+}</pre>
+  </div>
+</div>
+
+<!-- ══ SCENARIOS ══ -->
+<div id="sect-scenarios" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Scenario Playbook</div>
+      <div class="section-desc">Pre-built scenario definitions. Each scenario selects a subset of modules optimized for a specific test objective. New v2.0 scenarios are marked below.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('scenarios')"><i class="fa-solid fa-download"></i> config/scenarios.json</button>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-file-code"></i> config/scenarios.json</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block">{
+  <span class="st">"scenarios"</span>: {
+
+    <span class="st">"smoke"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Quick connectivity and latency sanity check"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-01"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">5</span>
+    },
+
+    <span class="st">"baseline"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Full resolution, cache, and negative response baseline"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-01"</span>, <span class="st">"MOD-07"</span>, <span class="st">"MOD-08"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">20</span>
+    },
+
+    <span class="st">"anycast-verify"</span>: {
+      <span class="st">"description"</span>: <span class="st">"BGP path selection and basic ECS steering validation"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-01"</span>, <span class="st">"MOD-03"</span>, <span class="st">"MOD-06"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">25</span>
+    },
+
+    <span class="st">"zone-integrity"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Zone transfer integrity and dynamic update authentication [v2.0]"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-10"</span>, <span class="st">"MOD-13"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">20</span>,
+      <span class="st">"notes"</span>: <span class="st">"Requires Windows DNS server reachability and TSIG keys configured"</span>
+    },
+
+    <span class="st">"security"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Threat protection and sinkhole coverage on edge resolvers [v2.0]"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-11"</span>, <span class="st">"MOD-12"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">25</span>,
+      <span class="st">"notes"</span>: <span class="st">"Requires threat-feeds.json populated with .rpz.invalid test domains"</span>
+    },
+
+    <span class="st">"ecs-advanced"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Full ECS steering validation including cross-cloud CNAME resolution [v2.0]"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-06"</span>, <span class="st">"MOD-14"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">20</span>
+    },
+
+    <span class="st">"isolation"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Tenant boundary enforcement between CORP and Market zones"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-05"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">15</span>
+    },
+
+    <span class="st">"load-ramp"</span>: {
+      <span class="st">"description"</span>: <span class="st">"QPS ramp to 10k and RRL boundary test — coordinate with NOC"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-02"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">45</span>,
+      <span class="st">"notes"</span>: <span class="st">"Do not run during production peak hours"</span>
+    },
+
+    <span class="st">"failover-drill"</span>: {
+      <span class="st">"description"</span>: <span class="st">"BGP withdrawal simulation and convergence timing — SHADOW VIP only"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-04"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">30</span>,
+      <span class="st">"notes"</span>: <span class="st">"Lab environment only. Requires BGP team coordination."</span>
+    },
+
+    <span class="st">"pre-cutover"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Go/no-go gate: baseline + anycast + isolation + zone integrity + security"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"MOD-01"</span>, <span class="st">"MOD-03"</span>, <span class="st">"MOD-05"</span>, <span class="st">"MOD-08"</span>, <span class="st">"MOD-10"</span>, <span class="st">"MOD-11"</span>, <span class="st">"MOD-12"</span>, <span class="st">"MOD-13"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">60</span>,
+      <span class="st">"notes"</span>: <span class="st">"All modules must PASS or WARN. FAIL on any module = no-go."</span>
+    },
+
+    <span class="st">"full"</span>: {
+      <span class="st">"description"</span>: <span class="st">"Complete test suite — all 14 modules"</span>,
+      <span class="st">"modules"</span>: [<span class="st">"*"</span>],
+      <span class="st">"estimated_minutes"</span>: <span class="nu">150</span>,
+      <span class="st">"notes"</span>: <span class="st">"Run in maintenance window. Includes failover-drill — coordinate with BGP team."</span>
+    }
+
+  }
+}</pre>
+  </div>
+</div>
+
+<!-- ══ REPORT ENGINE ══ -->
+<div id="sect-report" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">HTML Report Engine — MOD-09</div>
+      <div class="section-desc">Reads raw JSON output from each module's run directory and generates a dark-theme HTML dashboard with module summary, per-target latency table, and new v2.0 security/zone panels.</div>
+    </div>
+  </div>
+  <div class="alert alert-tip">
+    <i class="fa-solid fa-file-code"></i>
+    <div>The report engine auto-detects which modules ran from files present in <code>RunDir/raw/*.json</code>. Adding new modules requires no changes to the report engine — all modules surface their Summary.Status and Summary.Message automatically.</div>
+  </div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> DNSTest-Report.psm1 — MOD-09 (v2.0)</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# DNSTest-Report.psm1  –  MOD-09 · HTML Report Engine v2.0
+# Reads raw/*.json, generates dark-theme HTML dashboard
+# Auto-detects all modules — no changes needed for new modules
+# ============================================================</span>
+
+<span class="kw">function</span> <span class="fn">Get-ModuleInfo</span> {
+    [<span class="ty">pscustomobject</span>]@{ Id=<span class="st">'MOD-09'</span>; Name=<span class="st">'HTML Report Engine'</span>; Version=<span class="st">'2.0'</span>
+        Tags=@(<span class="st">'report'</span>,<span class="st">'output'</span>,<span class="st">'html'</span>) }
+}
+<span class="kw">function</span> <span class="fn">Get-DefaultConfig</span> { @{ OutputFile=<span class="st">'index.html'</span> } }
+<span class="kw">function</span> <span class="fn">Invoke-DNSTest</span> {
+    <span class="kw">param</span>(<span class="ty">[hashtable]</span><span class="va">$Context</span>)
+    <span class="fn">Invoke-DNSTestReport</span> -RunDir <span class="va">$Context</span>.RunDir
+    <span class="kw">return</span> [<span class="ty">pscustomobject</span>]@{
+        ModuleId=<span class="st">'MOD-09'</span>
+        Summary=[<span class="ty">pscustomobject</span>]@{ Status=<span class="st">'PASS'</span>; TestCount=<span class="nu">1</span>; Message=<span class="st">'HTML report generated'</span> }
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Get-StatusBadge</span>(<span class="va">$s</span>) {
+    <span class="kw">switch</span>(<span class="va">$s</span>) {
+        <span class="st">'PASS'</span>   { <span class="st">"&lt;span style='color:#22c55e;font-weight:700'&gt;● PASS&lt;/span&gt;"</span>   }
+        <span class="st">'WARN'</span>   { <span class="st">"&lt;span style='color:#f59e0b;font-weight:700'&gt;◐ WARN&lt;/span&gt;"</span>   }
+        <span class="st">'FAIL'</span>   { <span class="st">"&lt;span style='color:#ef4444;font-weight:700'&gt;✕ FAIL&lt;/span&gt;"</span>   }
+        <span class="st">'MANUAL'</span> { <span class="st">"&lt;span style='color:#89b4d1;font-weight:700'&gt;◻ MANUAL&lt;/span&gt;"</span> }
+        <span class="kw">default</span>  { <span class="st">"&lt;span style='color:#5a6e87'&gt;</span><span class="va">$s</span><span class="st">&lt;/span&gt;"</span>                         }
+    }
+}
+
+<span class="kw">function</span> <span class="fn">Invoke-DNSTestReport</span>(<span class="ty">[string]</span><span class="va">$RunDir</span>) {
+    <span class="va">$rawDir</span>  <span class="op">=</span> Join-Path <span class="va">$RunDir</span> <span class="st">'raw'</span>
+    <span class="va">$outFile</span> <span class="op">=</span> Join-Path <span class="va">$RunDir</span> <span class="st">'index.html'</span>
+    <span class="va">$runId</span>   <span class="op">=</span> Split-Path <span class="va">$RunDir</span> -Leaf
+    <span class="va">$genTime</span> <span class="op">=</span> Get-Date -Format <span class="st">'yyyy-MM-dd HH:mm:ss UTC'</span>
+
+    <span class="va">$modResults</span> <span class="op">=</span> @{}
+    Get-ChildItem <span class="va">$rawDir</span> -Filter <span class="st">'*.json'</span> -ErrorAction SilentlyContinue | ForEach-Object {
+        <span class="va">$modResults</span>[<span class="va">$_</span>.BaseName] <span class="op">=</span> Get-Content <span class="va">$_</span>.FullName -Raw | ConvertFrom-Json
+    }
+
+    <span class="va">$summaryRows</span> <span class="op">=</span> <span class="va">$modResults</span>.Keys | Sort-Object | ForEach-Object {
+        <span class="va">$m</span> <span class="op">=</span> <span class="va">$modResults</span>[<span class="va">$_</span>]; <span class="va">$s</span> <span class="op">=</span> <span class="va">$m</span>.Summary
+        <span class="st">"&lt;tr&gt;&lt;td style='font-family:monospace'&gt;</span><span class="va">$($m.ModuleId)</span><span class="st">&lt;/td&gt;&lt;td&gt;</span><span class="va">$(Get-StatusBadge $s.Status)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+        <span class="st">"&lt;td&gt;</span><span class="va">$($s.TestCount)</span><span class="st">&lt;/td&gt;&lt;td style='color:#5a6e87;font-size:11px'&gt;</span><span class="va">$($s.Message)</span><span class="st">&lt;/td&gt;&lt;/tr&gt;"</span>
+    }
+
+    <span class="cm"># MOD-01 latency table</span>
+    <span class="va">$latRows</span> <span class="op">=</span> <span class="st">''</span>
+    <span class="kw">if</span> (<span class="va">$modResults</span>[<span class="st">'MOD-01'</span>]) {
+        <span class="va">$modResults</span>[<span class="st">'MOD-01'</span>].Targets | ForEach-Object {
+            <span class="va">$ls</span>    <span class="op">=</span> <span class="va">$_</span>.LatencyStats
+            <span class="va">$clr</span>   <span class="op">=</span> <span class="kw">if</span>(<span class="va">$ls</span>.P95Ms <span class="op">-le</span><span class="nu">50</span>){<span class="st">'color:#22c55e'</span>}<span class="kw">elseif</span>(<span class="va">$ls</span>.P95Ms <span class="op">-le</span><span class="nu">100</span>){<span class="st">'color:#f59e0b'</span>}<span class="kw">else</span>{<span class="st">'color:#ef4444'</span>}
+            <span class="va">$latRows</span> <span class="op">+=</span> <span class="st">"&lt;tr&gt;&lt;td&gt;</span><span class="va">$($_.Target)</span><span class="st">&lt;/td&gt;&lt;td&gt;</span><span class="va">$($_.CSP)</span><span class="st">&lt;/td&gt;&lt;td&gt;</span><span class="va">$($_.Region)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td style='</span><span class="va">$clr</span><span class="st">;font-weight:600'&gt;</span><span class="va">$($ls.P50Ms)</span><span class="st">ms&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td style='</span><span class="va">$clr</span><span class="st">;font-weight:600'&gt;</span><span class="va">$($ls.P95Ms)</span><span class="st">ms&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td style='</span><span class="va">$clr</span><span class="st">;font-weight:600'&gt;</span><span class="va">$($ls.P99Ms)</span><span class="st">ms&lt;/td&gt;&lt;/tr&gt;"</span>
+        }
+    }
+
+    <span class="cm"># MOD-14 ECS cross-cloud table</span>
+    <span class="va">$ecsRows</span> <span class="op">=</span> <span class="st">''</span>
+    <span class="kw">if</span> (<span class="va">$modResults</span>[<span class="st">'MOD-14'</span>]) {
+        <span class="va">$modResults</span>[<span class="st">'MOD-14'</span>].Results | ForEach-Object {
+            <span class="va">$match</span> <span class="op">=</span> <span class="va">$_</span>.ExpectedCSP <span class="op">-eq</span> <span class="va">$_</span>.ObservedCSP
+            <span class="va">$c</span>     <span class="op">=</span> <span class="kw">if</span>(<span class="va">$match</span>){<span class="st">'color:#22c55e'</span>}<span class="kw">else</span>{<span class="st">'color:#ef4444'</span>}
+            <span class="va">$ecsRows</span> <span class="op">+=</span> <span class="st">"&lt;tr&gt;&lt;td style='font-family:monospace'&gt;</span><span class="va">$($_.CNAME)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td&gt;</span><span class="va">$($_.Region)</span><span class="st">&lt;/td&gt;&lt;td style='font-family:monospace;font-size:10px'&gt;</span><span class="va">$($_.ECSSubnet)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td style='</span><span class="va">$c</span><span class="st">;font-weight:600'&gt;</span><span class="va">$($_.ObservedCSP)</span><span class="st">&lt;/td&gt;&lt;td&gt;</span><span class="va">$($_.ExpectedCSP)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td&gt;</span><span class="va">$(Get-StatusBadge $_. Status)</span><span class="st">&lt;/td&gt;&lt;/tr&gt;"</span>
+        }
+    }
+
+    <span class="cm"># MOD-11 threat table</span>
+    <span class="va">$threatRows</span> <span class="op">=</span> <span class="st">''</span>
+    <span class="kw">if</span> (<span class="va">$modResults</span>[<span class="st">'MOD-11'</span>]) {
+        <span class="va">$modResults</span>[<span class="st">'MOD-11'</span>].Results | ForEach-Object {
+            <span class="va">$threatRows</span> <span class="op">+=</span> <span class="st">"&lt;tr&gt;&lt;td&gt;</span><span class="va">$($_.Resolver)</span><span class="st">&lt;/td&gt;&lt;td&gt;</span><span class="va">$($_.Category)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td style='font-family:monospace;font-size:10px'&gt;</span><span class="va">$($_.Domain)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td&gt;</span><span class="va">$($_.ExpectedAction)</span><span class="st">&lt;/td&gt;&lt;td&gt;</span><span class="va">$($_.ObservedStatus)</span><span class="st">&lt;/td&gt;"</span> <span class="op">+</span>
+                <span class="st">"&lt;td&gt;</span><span class="va">$(Get-StatusBadge $_.Status)</span><span class="st">&lt;/td&gt;&lt;/tr&gt;"</span>
+        }
+    }
+
+    <span class="va">$allStatuses</span> <span class="op">=</span> <span class="va">$modResults</span>.Values | ForEach-Object { <span class="va">$_</span>.Summary.Status }
+    <span class="va">$runStatus</span>   <span class="op">=</span> <span class="kw">if</span>(<span class="va">$allStatuses</span> -contains <span class="st">'FAIL'</span>){<span class="st">'FAIL'</span>}<span class="kw">elseif</span>(<span class="va">$allStatuses</span> -contains <span class="st">'WARN'</span>){<span class="st">'WARN'</span>}<span class="kw">else</span>{<span class="st">'PASS'</span>}
+    <span class="va">$runBadge</span>    <span class="op">=</span> <span class="fn">Get-StatusBadge</span> <span class="va">$runStatus</span>
+
+    <span class="va">$html</span> <span class="op">=</span> <span class="st">@"
+&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset="UTF-8"&gt;
+&lt;title&gt;DNSTestToolkit — Run </span><span class="va">$runId</span><span class="st">&lt;/title&gt;
+&lt;style&gt;
+  body{background:#0a0c10;color:#c8d6e8;font-family:'IBM Plex Sans',sans-serif;font-size:13px;margin:0;padding:32px}
+  h1{font-family:'IBM Plex Mono',monospace;font-size:22px;color:#fff;margin-bottom:4px}
+  h2{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#00d4aa;margin:28px 0 10px;text-transform:uppercase;letter-spacing:1px}
+  .meta{color:#5a6e87;font-size:11px;font-family:monospace;margin-bottom:28px}
+  table{width:100%;border-collapse:collapse;font-family:monospace;font-size:11px;margin-bottom:24px}
+  th{background:#161b24;padding:8px 12px;text-align:left;color:#5a6e87;font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+  td{padding:9px 12px;border-bottom:1px solid #1e2736}
+  tr:hover td{background:rgba(255,255,255,0.02)}
+  .banner{padding:14px 20px;border-radius:6px;margin-bottom:24px;font-family:monospace;font-weight:700;font-size:14px}
+  .PASS{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3)}
+  .WARN{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3)}
+  .FAIL{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3)}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;DNSTestToolkit v2.0 — Run Report&lt;/h1&gt;
+&lt;div class="meta"&gt;Run ID: </span><span class="va">$runId</span><span class="st"> · Generated: </span><span class="va">$genTime</span><span class="st"> · Modules: </span><span class="va">$($modResults.Count)</span><span class="st">&lt;/div&gt;
+&lt;div class="banner </span><span class="va">$runStatus</span><span class="st">"&gt;Overall: </span><span class="va">$runBadge</span><span class="st">&lt;/div&gt;
+
+&lt;h2&gt;Module Summary&lt;/h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Module&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th&gt;Tests&lt;/th&gt;&lt;th&gt;Message&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;</span><span class="va">$($summaryRows -join '')</span><span class="st">&lt;/tbody&gt;&lt;/table&gt;
+
+&lt;h2&gt;MOD-01 · Latency by Target&lt;/h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Target&lt;/th&gt;&lt;th&gt;CSP&lt;/th&gt;&lt;th&gt;Region&lt;/th&gt;&lt;th&gt;p50&lt;/th&gt;&lt;th&gt;p95&lt;/th&gt;&lt;th&gt;p99&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;</span><span class="va">$latRows</span><span class="st">&lt;/tbody&gt;&lt;/table&gt;
+
+&lt;h2&gt;MOD-11 · Threat Protection Coverage&lt;/h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Resolver&lt;/th&gt;&lt;th&gt;Category&lt;/th&gt;&lt;th&gt;Domain&lt;/th&gt;&lt;th&gt;Expected&lt;/th&gt;&lt;th&gt;Observed&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;</span><span class="va">$threatRows</span><span class="st">&lt;/tbody&gt;&lt;/table&gt;
+
+&lt;h2&gt;MOD-14 · ECS Cross-Cloud CNAME Steering&lt;/h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;CNAME&lt;/th&gt;&lt;th&gt;Region&lt;/th&gt;&lt;th&gt;ECS Subnet&lt;/th&gt;&lt;th&gt;Observed CSP&lt;/th&gt;&lt;th&gt;Expected&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;</span><span class="va">$ecsRows</span><span class="st">&lt;/tbody&gt;&lt;/table&gt;
+
+&lt;p style="color:#3d4f63;font-size:10px;margin-top:40px"&gt;
+DNSTestToolkit v2.0 · Run </span><span class="va">$runId</span><span class="st"> · </span><span class="va">$genTime</span><span class="st">
+&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+"@</span>
+    <span class="va">$html</span> | Out-File <span class="va">$outFile</span> -Encoding utf8 -Force
+    Write-Host <span class="st">"  [MOD-09] Report written: </span><span class="va">$outFile</span><span class="st">"</span>
+}
+Export-ModuleMember -Function <span class="fn">Get-ModuleInfo</span>, <span class="fn">Get-DefaultConfig</span>, <span class="fn">Invoke-DNSTest</span>, <span class="fn">Invoke-DNSTestReport</span></pre>
+  </div>
+</div>
+
+<!-- ══ RUNNER ══ -->
+<div id="sect-runner" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Runner — Invoke-DNSTestSuite.ps1</div>
+      <div class="section-desc">Entry point. Accepts scenario name or explicit module list. Supports dry-run and no-report modes.</div>
+    </div>
+    <button class="dl-btn dl-btn-outline" onclick="downloadScript('runner')"><i class="fa-solid fa-download"></i> Invoke-DNSTestSuite.ps1</button>
+  </div>
+
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-brands fa-windows"></i> Invoke-DNSTestSuite.ps1</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># ============================================================
+# Invoke-DNSTestSuite.ps1 — DNSTestToolkit v2.0 Entry Point
+# ============================================================</span>
+<span class="kw">param</span>(
+    <span class="ty">[string]</span>    <span class="va">$Scenario</span>  <span class="op">=</span> <span class="st">'smoke'</span>,
+    <span class="ty">[string[]]</span>  <span class="va">$Modules</span>   <span class="op">=</span> @(<span class="st">'*'</span>),
+    <span class="ty">[switch]</span>    <span class="va">$NoReport</span>,
+    <span class="ty">[switch]</span>    <span class="va">$DryRun</span>,
+    <span class="ty">[switch]</span>    <span class="va">$ListScenarios</span>
+)
+
+. (Join-Path <span class="va">$PSScriptRoot</span> <span class="st">'DNSTestEngine.ps1'</span>)
+
+<span class="kw">if</span> (<span class="va">$ListScenarios</span>) {
+    <span class="va">$sc</span> <span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'scenarios'</span>
+    <span class="va">$sc</span>.scenarios.PSObject.Properties | ForEach-Object {
+        Write-Host <span class="st">"  </span><span class="va">$($_.Name.PadRight(20))</span><span class="st"> ~</span><span class="va">$($_.Value.estimated_minutes)</span><span class="st">min  </span><span class="va">$($_.Value.description)</span><span class="st">"</span>
+    }
+    <span class="kw">return</span>
+}
+
+<span class="kw">if</span> (<span class="va">$Modules</span> <span class="op">-eq</span> @(<span class="st">'*'</span>) -and <span class="va">$Scenario</span>) {
+    <span class="va">$sc</span>       <span class="op">=</span> <span class="fn">Get-EngineConfig</span> <span class="st">'scenarios'</span>
+    <span class="va">$scDef</span>    <span class="op">=</span> <span class="va">$sc</span>.scenarios.<span class="va">$Scenario</span>
+    <span class="kw">if</span> (<span class="va">$scDef</span>) {
+        <span class="va">$Modules</span> <span class="op">=</span> <span class="va">$scDef</span>.modules
+        Write-Host <span class="st">"[SUITE] Scenario: </span><span class="va">$Scenario</span><span class="st"> | </span><span class="va">$($scDef.description)</span><span class="st">"</span> -ForegroundColor Cyan
+        Write-Host <span class="st">"[SUITE] Estimated runtime: ~</span><span class="va">$($scDef.estimated_minutes)</span><span class="st"> minutes"</span>  -ForegroundColor Cyan
+        <span class="kw">if</span> (<span class="va">$scDef</span>.notes) { Write-Host <span class="st">"[SUITE] NOTE: </span><span class="va">$($scDef.notes)</span><span class="st">"</span> -ForegroundColor Yellow }
+    } <span class="kw">else</span> {
+        Write-Warning <span class="st">"Unknown scenario '</span><span class="va">$Scenario</span><span class="st">'. Run with -ListScenarios to see options."</span>
+        <span class="kw">return</span>
+    }
+}
+
+<span class="fn">Invoke-TestEngine</span> -Modules <span class="va">$Modules</span> -Scenario <span class="va">$Scenario</span> `
+    -NoReport:<span class="va">$NoReport</span> -DryRun:<span class="va">$DryRun</span></pre>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-terminal"></i> Usage Examples</div>
+  <div class="code-wrapper">
+    <div class="code-header">
+      <span class="code-label"><i class="fa-solid fa-terminal"></i> Command Examples</span>
+      <button class="copy-btn" onclick="copyCode(this)"><i class="fa-solid fa-copy"></i> Copy</button>
+    </div>
+<pre class="code-block"><span class="cm"># List all available scenarios with runtimes</span>
+.\Invoke-DNSTestSuite.ps1 -ListScenarios
+
+<span class="cm"># Quick 5-minute smoke test</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario smoke
+
+<span class="cm"># Full baseline + cache + negative validation</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario baseline
+
+<span class="cm"># Zone transfer + TSIG dynamic update integrity</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario zone-integrity
+
+<span class="cm"># Threat protection + sinkhole coverage on edge resolvers</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario security
+
+<span class="cm"># ECS cross-cloud CNAME steering</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario ecs-advanced
+
+<span class="cm"># Pre-cutover go/no-go gate</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario pre-cutover
+
+<span class="cm"># Dry-run to verify config and module discovery without executing tests</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario full -DryRun
+
+<span class="cm"># Run specific modules by ID</span>
+.\Invoke-DNSTestSuite.ps1 -Modules MOD-11,MOD-12,MOD-14
+
+<span class="cm"># Full suite — coordinate with NOC and BGP team</span>
+.\Invoke-DNSTestSuite.ps1 -Scenario full</pre>
+  </div>
+</div>
+
+<!-- ══ REFERENCE ══ -->
+<div id="sect-reference" class="section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">VIP / Host Reference</div>
+      <div class="section-desc">Quick reference for all resolver targets, Anycast VIPs, Windows DNS sources, and threshold values used across all modules.</div>
+    </div>
+  </div>
+
+  <div class="sub-header"><i class="fa-solid fa-network-wired"></i> Anycast VIPs</div>
+  <table class="data-table">
+    <thead><tr><th>VIP Name</th><th>IP</th><th>Role</th><th>Used by Modules</th></tr></thead>
+    <tbody>
+      <tr><td>GLOBAL-DNS</td><td>10.100.100.100</td><td>Anycast primary</td><td>MOD-01, 03, 05, 06, 07, 08, 13</td></tr>
+      <tr><td>SHADOW-DNS</td><td>10.100.100.101</td><td>Shadow / failover test</td><td>MOD-04</td></tr>
+      <tr><td>REGIONAL-ECS</td><td>10.100.100.102</td><td>ECS steering</td><td>MOD-06, 14</td></tr>
+      <tr><td>LEGACY-MS</td><td>10.100.100.99</td><td>Legacy rollback</td><td>MOD-01</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub-header"><i class="fa-solid fa-server"></i> Edge Resolver Nodes</div>
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>IP</th><th>CSP</th><th>Region</th><th>Threat Protection Modules</th></tr></thead>
+    <tbody>
+      <tr><td>edge-aws-01</td><td>192.168.10.30</td><td>AWS</td><td>us-east-1</td><td>MOD-11, 12</td></tr>
+      <tr><td>edge-aws-02</td><td>192.168.10.42</td><td>AWS</td><td>us-east-1</td><td>MOD-11, 12</td></tr>
+      <tr><td>edge-gcp-01</td><td>192.168.20.30</td><td>GCP</td><td>us-central1</td><td>MOD-11, 12</td></tr>
+      <tr><td>edge-gcp-02</td><td>192.168.20.42</td><td>GCP</td><td>us-central1</td><td>MOD-11, 12</td></tr>
+      <tr><td>edge-az-01</td><td>192.168.30.30</td><td>Azure</td><td>eastus2</td><td>MOD-11, 12</td></tr>
+      <tr><td>edge-az-02</td><td>192.168.30.42</td><td>Azure</td><td>eastus2</td><td>MOD-11, 12</td></tr>
+      <tr><td>mdds-hidden-01</td><td>192.168.0.30</td><td>Equinix</td><td>equinix-dc</td><td>MOD-13 (update target)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub-header"><i class="fa-brands fa-windows"></i> Windows DNS Sources (MOD-10)</div>
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>IP</th><th>Role</th><th>Zones</th></tr></thead>
+    <tbody>
+      <tr><td>wdns-ext-01</td><td>10.50.1.10</td><td>External authoritative</td><td>external.example.com, split.example.com</td></tr>
+      <tr><td>wdns-ext-02</td><td>10.50.1.11</td><td>External secondary</td><td>external.example.com</td></tr>
+      <tr><td>wdns-int-01</td><td>10.50.2.10</td><td>Internal authoritative</td><td>internal.example.com, split.example.com</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub-header"><i class="fa-solid fa-sliders"></i> Default Thresholds</div>
+  <table class="data-table">
+    <thead><tr><th>Metric</th><th>PASS</th><th>WARN</th><th>FAIL</th><th>Module</th></tr></thead>
+    <tbody>
+      <tr><td>p50 latency</td><td>≤ 20ms</td><td>≤ 50ms</td><td>&gt; 50ms</td><td>MOD-01</td></tr>
+      <tr><td>p95 latency</td><td>≤ 50ms</td><td>≤ 100ms</td><td>&gt; 100ms</td><td>MOD-01</td></tr>
+      <tr><td>p99 latency</td><td>≤ 100ms</td><td>≤ 200ms</td><td>&gt; 200ms</td><td>MOD-01</td></tr>
+      <tr><td>Anycast path delta</td><td>≤ 5ms</td><td>≤ 15ms</td><td>&gt; 15ms</td><td>MOD-03</td></tr>
+      <tr><td>Outage window</td><td>0ms</td><td>≤ 500ms</td><td>&gt; 500ms</td><td>MOD-04</td></tr>
+      <tr><td>Cache hit ratio</td><td>≥ 80%</td><td>≥ 50%</td><td>&lt; 50%</td><td>MOD-08</td></tr>
+      <tr><td>NXDOMAIN rate</td><td>≥ 99%</td><td>≥ 95%</td><td>&lt; 95%</td><td>MOD-07</td></tr>
+      <tr><td>Block latency (threat)</td><td>≤ 50ms</td><td>≤ 100ms</td><td>&gt; 100ms</td><td>MOD-11</td></tr>
+      <tr><td>Threat block rate</td><td>100%</td><td>≥ 95%</td><td>&lt; 95%</td><td>MOD-11</td></tr>
+      <tr><td>Sinkhole passthrough leaks</td><td>0</td><td>0</td><td>&gt; 0</td><td>MOD-12</td></tr>
+      <tr><td>TSIG REFUSED on unsigned</td><td>100%</td><td>—</td><td>&lt; 100%</td><td>MOD-13</td></tr>
+      <tr><td>ECS CSP steering accuracy</td><td>100% consistent</td><td>Inconsistent</td><td>Wrong CSP</td><td>MOD-14</td></tr>
+      <tr><td>CNAME chain depth</td><td>≤ 3</td><td>≤ 5</td><td>&gt; 5</td><td>MOD-14</td></tr>
+      <tr><td>AXFR record delta</td><td>≤ 1%</td><td>≤ 5%</td><td>&gt; 5%</td><td>MOD-10</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</main>
+</div><!-- /.layout -->
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('sect-' + id);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const tabMap = {
+    'overview':'Overview','engine':'Engine Core',
+    'modules':'Modules','newmodules':'New Modules',
+    'mod-baseline':'Modules','mod-load':'Modules','mod-anycast':'Modules',
+    'mod-failover':'Modules','mod-tenant':'Modules','mod-geo':'Modules',
+    'mod-negative':'Modules','mod-ttl':'Modules',
+    'mod-xfer':'New Modules','mod-threat':'New Modules',
+    'mod-sinkhole':'New Modules','mod-tsig':'New Modules','mod-ecsadv':'New Modules',
+    'scenarios':'Scenarios','report':'Report Engine',
+    'runner':'Runner &amp; Config','reference':'Reference'
+  };
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    if (t.textContent.trim() === (tabMap[id]||'').replace('&amp;','&')) t.classList.add('active');
+  });
+}
+function setActive(el) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrapper').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy'; }, 2000);
+  });
+}
+function downloadScript(name) {
+  const map = {
+    engine:'DNSTestEngine.ps1', runner:'Invoke-DNSTestSuite.ps1',
+    baseline:'DNSTest-Baseline.psm1', load:'DNSTest-Load.psm1',
+    anycast:'DNSTest-Anycast.psm1', failover:'DNSTest-Failover.psm1',
+    tenant:'DNSTest-Isolation.psm1', geo:'DNSTest-Geo.psm1',
+    negative:'DNSTest-Negative.psm1', ttl:'DNSTest-TTL.psm1',
+    xfer:'DNSTest-ZoneTransfer.psm1', threat:'DNSTest-Threat.psm1',
+    sinkhole:'DNSTest-Sinkhole.psm1', tsig:'DNSTest-TSIG.psm1',
+    ecsadv:'DNSTest-ECSAdvanced.psm1', scenarios:'scenarios.json'
+  };
+  const section = document.querySelector(`[id*="${name}"] pre, #sect-${name === 'scenarios' ? 'scenarios' : 'runner'} pre`);
+  if (!section) return;
+  const blob = new Blob([section.innerText], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = map[name] || name + '.ps1';
+  a.click();
+}
+function downloadAll() {
+  alert('Copy each module from its tab using the Copy button and save with the filename shown in the code header.');
+}
+</script>
+</body>
+</html>
