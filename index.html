@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<!-- saved from url=(0051)file:///C:/Users/DenmarkDave/Downloads/index_1.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNS Infrastructure Knowledge Base</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./index_files/css2" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2330;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --text: #c8d0e0;
+    --muted: #4a5568;
+    --tag-cloud: #0d3347;
+    --tag-cloud-text: #00b4d8;
+    --tag-bluecat: #1a2a1a;
+    --tag-bluecat-text: #4ade80;
+    --tag-qsr: #2a1a0d;
+    --tag-qsr-text: #fb923c;
+    --tag-effip: #2a1a2a;
+    --tag-effip-text: #c084fc;
+    --tag-tool: #1a1a2a;
+    --tag-tool-text: #818cf8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 60px 48px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .site-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .doc-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .doc-count strong {
+    color: var(--accent);
+  }
+
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  section h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  section h2::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .card:hover {
+    border-color: rgba(0,229,255,0.3);
+    background: #13161e;
+    transform: translateY(-1px);
+  }
+
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e2e8f0;
+    line-height: 1.3;
+  }
+
+  .card-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .tag-cloud  { background: var(--tag-cloud);  color: var(--tag-cloud-text); }
+  .tag-bluecat{ background: var(--tag-bluecat); color: var(--tag-bluecat-text); }
+  .tag-qsr    { background: var(--tag-qsr);    color: var(--tag-qsr-text); }
+  .tag-effip  { background: var(--tag-effip);  color: var(--tag-effip-text); }
+  .tag-tool   { background: var(--tag-tool);   color: var(--tag-tool-text); }
+
+  .arrow {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 18px;
+    transition: color 0.2s, transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .card:hover .arrow {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 32px 48px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 640px) {
+    header, main { padding: 28px 20px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="site-label">// DNS Infrastructure</div>
+      <h1>Knowledge <span>Base</span></h1>
+      <div class="doc-count"><strong>13</strong> documents · 5 categories</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Cloud DNS -->
+  <section>
+    <h2>Cloud DNS Integrations</h2>
+    <div class="cards">
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/AWS%20Route%2053%20DNS%20Integration%20v1.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-cloud">AWS</span>
+        </div>
+        <div class="card-title">Route 53 DNS Integration</div>
+        <div class="card-meta">v1.0 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/Azure%20DNS%20Private%20Resolver%20v1.0.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-cloud">Azure</span>
+        </div>
+        <div class="card-title">DNS Private Resolver</div>
+        <div class="card-meta">v1.0 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/Google%20Cloud%20DNS%20Integration%20v1.0.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-cloud">GCP</span>
+        </div>
+        <div class="card-title">Cloud DNS Integration</div>
+        <div class="card-meta">v1.0 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/Google%20Cloud%20DNS%20Integration%20v1.2b.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-cloud">GCP</span>
+        </div>
+        <div class="card-title">Cloud DNS Integration</div>
+        <div class="card-meta">v1.2b <span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- BlueCat -->
+  <section>
+    <h2>BlueCat MDDS &amp; Edge</h2>
+    <div class="cards">
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/BlueCat-Anycast-11-Scenarios-v2.6.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-bluecat">BlueCat</span>
+          <span class="tag tag-bluecat">Anycast</span>
+        </div>
+        <div class="card-title">Anycast — 11 Scenarios</div>
+        <div class="card-meta">v2.6 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/BlueCat-MDDS-Edge-Resolver-Implementation-Guide-v1.5.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-bluecat">BlueCat</span>
+          <span class="tag tag-bluecat">MDDS</span>
+        </div>
+        <div class="card-title">Edge Resolver Implementation Guide</div>
+        <div class="card-meta">v1.5 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/BlueCat-MDDS-Edge-Security-Testing-Runbook-v1.5.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-bluecat">BlueCat</span>
+          <span class="tag tag-bluecat">Security</span>
+        </div>
+        <div class="card-title">Edge Security Testing Runbook</div>
+        <div class="card-meta">v1.5 <span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- QSR Global DNS -->
+  <section>
+    <h2>QSR Global DNS</h2>
+    <div class="cards">
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/QSR-BlueCat-MDDS-EdgeResolver-Master-Workshop-Report-v1.0.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-qsr">QSR</span>
+          <span class="tag tag-bluecat">BlueCat</span>
+        </div>
+        <div class="card-title">MDDS Edge Resolver — Master Workshop Report</div>
+        <div class="card-meta">v1.0 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/QSR-Global-BlueCat-MDDS-EdgeResolver-LLD-v4_0.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-qsr">QSR</span>
+          <span class="tag tag-bluecat">BlueCat</span>
+        </div>
+        <div class="card-title">Global MDDS Edge Resolver LLD</div>
+        <div class="card-meta">v4.0 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/QSR-Global-DNS-POC-IPAM-RBAC-Terraform-Automation-Guide-v1.3.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-qsr">QSR</span>
+          <span class="tag tag-tool">Terraform</span>
+        </div>
+        <div class="card-title">DNS POC — IPAM · RBAC · Terraform Automation</div>
+        <div class="card-meta">v1.3 <span class="arrow">→</span></div>
+      </a>
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/QSR_Global_DNS_Dataset_Summary_v1_1.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-qsr">QSR</span>
+        </div>
+        <div class="card-title">Global DNS Dataset Summary</div>
+        <div class="card-meta">v1.1 <span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- EfficientIP -->
+  <section>
+    <h2>EfficientIP</h2>
+    <div class="cards">
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/EfficientIP-SOLIDserver-HA-Anycast-Implementation-Guide-v1.5b.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-effip">EfficientIP</span>
+          <span class="tag tag-effip">Anycast</span>
+        </div>
+        <div class="card-title">SOLIDserver HA Anycast Implementation Guide</div>
+        <div class="card-meta">v1.5b <span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Tools -->
+  <section>
+    <h2>Tools</h2>
+    <div class="cards">
+
+      <a class="card" href="file:///C:/Users/DenmarkDave/Downloads/DNSTestToolkit-v2_0.html">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag tag-tool">Toolkit</span>
+        </div>
+        <div class="card-title">DNS Test Toolkit</div>
+        <div class="card-meta">v2.0 <span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  DNS Infrastructure Knowledge Base &nbsp;·&nbsp; 13 documents
+</footer>
+
+
+
+</body></html>
